@@ -18,4 +18,4 @@
 .brand-icon{display:block;width:38px;height:38px;object-fit:contain;border-radius:10px;filter:drop-shadow(0 0 10px #9c7cff66)}
 @media(max-width:560px){.shap-video-preview img{width:150px;height:84px;flex-basis:150px}.shap-video-preview strong{font-size:14px}}
 @media print{.site-header{position:static}.hero{min-height:auto;padding:30px}.hero-orbit,.hero-actions,.language-button,.static-pill,.shap-controls{display:none!important}.section{padding-top:35px}.video-grid{grid-template-columns:repeat(3,1fr)}body{background:#fff;color:#111}.profile-strip,.video-card,.shap-global,.shap-detail,.model-panel,.causal-copy{background:#fff;border-color:#bbb}.section-description,.video-card p,.model-copy,.causal-copy,.bar-row span{color:#444}}
-.causal-dot{cursor:pointer}.causal-dot:hover{stroke:#fff;stroke-width:2}.causal-tooltip{position:fixed!important;z-index:50}
+.causal-dot,.causal-box{cursor:pointer}.causal-dot:hover{stroke:#fff;stroke-width:2}.causal-box:hover{stroke:#fff;stroke-width:3}.causal-tooltip{position:fixed!important;z-index:50}

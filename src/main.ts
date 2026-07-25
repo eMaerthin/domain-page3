@@ -125,7 +125,7 @@ function outcomeChart(treatment: any, rows: any[], videosById: Map<string, any>,
     const med = quantile(values, .5);
     const q3 = quantile(values, .75);
     const points = rowsForGroup.map((row, index) => `<circle class="causal-dot" data-video-id="${escapeHtml(row.video_id || "")}" cx="${x + ((index * 37) % 34) - 17}" cy="${y(row[outcomeKey])}" r="3.5" fill="${color}" fill-opacity=".48"><title>${escapeHtml(row.title || row.video_id || "")} · ${label}: ${Number(row[outcomeKey]).toFixed(3)}</title></circle>`).join("");
-    return `${points}<line x1="${x}" y1="${y(Math.min(...values))}" x2="${x}" y2="${y(Math.max(...values))}" stroke="${color}" stroke-width="2"/><rect x="${x - 25}" y="${y(q3)}" width="50" height="${Math.max(2, y(q1) - y(q3))}" fill="${color}" fill-opacity=".18" stroke="${color}" stroke-width="2"/><line x1="${x - 25}" y1="${y(med)}" x2="${x + 25}" y2="${y(med)}" stroke="${color}" stroke-width="3"/><text x="${x}" y="210" text-anchor="middle" fill="#aab1ca">${label} (n=${values.length})</text>`;
+    return `${points}<line x1="${x}" y1="${y(Math.min(...values))}" x2="${x}" y2="${y(Math.max(...values))}" stroke="${color}" stroke-width="2"><title>${label}: range ${Math.min(...values).toFixed(3)}–${Math.max(...values).toFixed(3)}</title></line><rect class="causal-box" x="${x - 25}" y="${y(q3)}" width="50" height="${Math.max(2, y(q1) - y(q3))}" fill="${color}" fill-opacity=".18" stroke="${color}" stroke-width="2"><title>${label} middle 50%: Q1 ${q1.toFixed(3)} · median ${med.toFixed(3)} · Q3 ${q3.toFixed(3)}</title></rect><line x1="${x - 25}" y1="${y(med)}" x2="${x + 25}" y2="${y(med)}" stroke="${color}" stroke-width="3"><title>${label} median: ${med.toFixed(3)}</title></line><text x="${x}" y="210" text-anchor="middle" fill="#aab1ca">${label} (n=${values.length})</text>`;
   };
   const grid = [0, .25, .5, .75, 1].map((fraction) => {
     const value = min + span * fraction;
@@ -184,6 +184,21 @@ function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any
       detail.classList.remove("muted");
       detail.innerHTML = `<a href="${escapeHtml(video.video_url || "#")}" target="_blank" rel="noreferrer">${video.thumbnail_url ? `<img src="${escapeHtml(video.thumbnail_url)}" alt="" />` : ""}<div><strong class="video-detail-title">${escapeHtml(video.title || video.video_id)}</strong><div class="video-detail-meta">${date(video.published_at)} · ${format(video.views)} ${text[currentLocale].views} · ${format(video.likes)} ${text[currentLocale].likes}</div></div></a>`;
     });
+  });
+  target.querySelectorAll<SVGRectElement>(".causal-box").forEach((box) => {
+    box.addEventListener("pointerenter", () => {
+      if (!tooltip) return;
+      tooltip.textContent = box.querySelector("title")?.textContent || "";
+      tooltip.hidden = false;
+      tooltip.style.display = "block";
+    });
+    box.addEventListener("pointermove", (event) => {
+      if (!tooltip) return;
+      tooltip.style.position = "fixed";
+      tooltip.style.left = `${Math.min(event.clientX + 12, window.innerWidth - tooltip.offsetWidth - 10)}px`;
+      tooltip.style.top = `${Math.min(event.clientY + 12, window.innerHeight - tooltip.offsetHeight - 10)}px`;
+    });
+    box.addEventListener("pointerleave", () => { if (tooltip) { tooltip.hidden = true; tooltip.style.display = "none"; } });
   });
 }
 
