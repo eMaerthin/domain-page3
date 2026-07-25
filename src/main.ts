@@ -244,10 +244,10 @@ function renderDistribution(points: any[]): void {
     const px = x(new Date(point.published_at).getTime()), py = y(Number(point.perf_score));
     context.fillStyle = point.selected && topIds.has(point.video_id) ? "#22c55e" : point.selected && weakIds.has(point.video_id) ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
     const isWeak = weakIds.has(point.video_id);
-    context.beginPath(); context.arc(px, py, point.selected && (topIds.has(point.video_id) || isWeak) ? 6 : point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
-    if (point.selected && isWeak) {
+    context.beginPath(); context.arc(px, py, point.selected && (topIds.has(point.video_id) || isWeak) ? 4.5 : point.selected ? 3.5 : 2.2, 0, Math.PI * 2); context.fill();
+    if (point.selected && (isWeak || topIds.has(point.video_id))) {
       context.strokeStyle = "#e9d5ff";
-      context.lineWidth = 1.5;
+      context.lineWidth = 1;
       context.stroke();
     }
     pointLayout.push({ point, x: px, y: py });
