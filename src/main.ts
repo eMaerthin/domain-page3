@@ -5,6 +5,7 @@ type Locale = "en" | "pl";
 const locale: Locale = navigator.language.toLowerCase().startsWith("pl") ? "pl" : "en";
 let currentLocale = locale;
 let selectedVideoId = "";
+let selectedTreatmentId = "";
 let demoData: any;
 
 const text = {
@@ -125,6 +126,12 @@ function render(): void {
   const selectedVideo = videos.find((video: any) => video.video_id === selectedVideoId);
   const causal = evidence.causal_model || {};
   const distribution = evidence.distribution_points || [];
+  const eligibleTreatments = causal.eligible_treatments || [];
+  if (!selectedTreatmentId && eligibleTreatments.length) selectedTreatmentId = eligibleTreatments[0].treatment;
+  const selectedTreatment = eligibleTreatments.find((item: any) => item.treatment === selectedTreatmentId) || eligibleTreatments[0];
+  const shapIndex = Math.max(0, shapVideos.findIndex(([id]) => id === selectedVideoId));
+  const previousShapId = shapVideos[(shapIndex - 1 + shapVideos.length) % Math.max(shapVideos.length, 1)]?.[0];
+  const nextShapId = shapVideos[(shapIndex + 1) % Math.max(shapVideos.length, 1)]?.[0];
 
   document.documentElement.lang = currentLocale;
   $("#app").innerHTML = `
@@ -169,11 +176,11 @@ function render(): void {
       </section>
       <section class="section premium-section">
         <div class="section-heading"><div><p class="eyebrow">05 / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
-        ${shap.status === "ok" ? `<div class="shap-layout"><div class="shap-global"><h3>Global pattern</h3>${(shap.global_importance || []).slice(0, 8).map((item: any) => `<div class="bar-row"><span>${escapeHtml(item.feature)}</span><i><b style="width:${Math.min(100, Number(item.mean_abs_shap) * 100)}%"></b></i><em>${Number(item.mean_abs_shap).toFixed(2)}</em></div>`).join("")}</div><div class="shap-detail"><h3>${escapeHtml(selectedVideo?.title || "Video explanation")}</h3><p>${date(selectedVideo?.published_at)} · ${compact(selectedVideo?.views)} ${t.views}</p>${(selected?.shap_values || []).slice(0, 8).map((item: any) => `<div class="bar-row"><span>${escapeHtml(item.feature)}</span><i><b class="${Number(item.value) < 0 ? "negative" : ""}" style="width:${Math.min(100, Math.abs(Number(item.value)) * 42)}%"></b></i><em>${Number(item.value).toFixed(2)}</em></div>`).join("")}<div class="shap-controls">${shapVideos.map(([id], index) => `<button class="${id === selectedVideoId ? "active" : ""}" data-video="${id}">${index + 1}</button>`).join("")}</div></div></div>` : `<div class="empty-state">${t.modelUnavailable}</div>`}
+        ${shap.status === "ok" ? `<div class="shap-layout"><div class="shap-global"><h3>Global pattern</h3>${(shap.global_importance || []).slice(0, 8).map((item: any) => `<div class="bar-row"><span>${escapeHtml(item.feature)}</span><i><b style="width:${Math.min(100, Number(item.mean_abs_shap) * 100)}%"></b></i><em>${Number(item.mean_abs_shap).toFixed(2)}</em></div>`).join("")}</div><div class="shap-detail"><div class="shap-detail-heading"><div><h3>${escapeHtml(selectedVideo?.title || "Video explanation")}</h3><p>${date(selectedVideo?.published_at)} · ${compact(selectedVideo?.views)} ${t.views}</p></div><span>${shapIndex + 1} / ${shapVideos.length}</span></div>${(selected?.shap_values || []).slice(0, 8).map((item: any) => `<div class="bar-row"><span>${escapeHtml(item.feature)}</span><i><b class="${Number(item.value) < 0 ? "negative" : ""}" style="width:${Math.min(100, Math.abs(Number(item.value)) * 42)}%"></b></i><em>${Number(item.value).toFixed(2)}</em></div>`).join("")}<div class="shap-controls"><button data-shap="${previousShapId || ""}">← Previous</button><button data-shap="${nextShapId || ""}">Next →</button></div><div class="shap-controls shap-index">${shapVideos.map(([id], index) => `<button class="${id === selectedVideoId ? "active" : ""}" data-video="${id}">${index + 1}</button>`).join("")}</div></div></div>` : `<div class="empty-state">${t.modelUnavailable}</div>`}
       </section>
       <section class="section causal-section">
         <div class="section-heading"><div><p class="eyebrow">06 / caution</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
-        <div class="causal-copy">${causal.eligible_treatments?.length ? causal.eligible_treatments.slice(0, 4).map((item: any) => `<div class="causal-item"><strong>${escapeHtml(item.label || item.treatment || "Treatment")}</strong><span>${Number(item.effect ?? item.estimate ?? 0).toFixed(2)}</span></div>`).join("") : `<p>${t.noCausal}</p>`}</div>
+        <div class="causal-copy">${selectedTreatment ? `<div class="causal-tabs">${eligibleTreatments.map((item: any) => `<button class="${item.treatment === selectedTreatment.treatment ? "active" : ""}" data-treatment="${item.treatment}">${escapeHtml(currentLocale === "pl" ? item.treatment_label || item.treatment : item.treatment_label_en || item.treatment_label || item.treatment)}</button>`).join("")}</div><div class="causal-detail"><div><p class="eyebrow">${escapeHtml(currentLocale === "pl" ? selectedTreatment.treatment_label || selectedTreatment.treatment : selectedTreatment.treatment_label_en || selectedTreatment.treatment_label || selectedTreatment.treatment)}</p><h3>${Number(selectedTreatment.estimated_lift_percent || 0).toFixed(0)}% estimated lift</h3><p>${escapeHtml(selectedTreatment.treatment_definition || "")}</p></div><div class="effect-meter"><span style="width:${Math.min(100, Math.max(4, Number(selectedTreatment.estimated_lift_percent || 0) / 8))}%"></span></div><div class="causal-stats"><span>${selectedTreatment.treated_rows} treated</span><span>${selectedTreatment.control_rows} control</span><span>95% CI: ${selectedTreatment.confidence_interval_95?.map((value: number) => value.toFixed(2)).join(" to ")}</span></div><p class="warning">${escapeHtml(selectedTreatment.warning || causal.global_disclaimer || "")}</p></div>` : `<p>${t.noCausal}</p>`}</div>
       </section>
     </main>
     <footer><span>SNAPIK / find the peak</span><span>${t.demo} · ${profile.display_name}</span></footer>`;
@@ -181,6 +188,8 @@ function render(): void {
   $("#language").addEventListener("click", () => { currentLocale = currentLocale === "pl" ? "en" : "pl"; void loadDemo(); });
   $("#print").addEventListener("click", () => window.print());
   document.querySelectorAll<HTMLButtonElement>("[data-video]").forEach((button) => button.addEventListener("click", () => { selectedVideoId = button.dataset.video || ""; render(); }));
+  document.querySelectorAll<HTMLButtonElement>("[data-shap]").forEach((button) => button.addEventListener("click", () => { selectedVideoId = button.dataset.shap || selectedVideoId; render(); }));
+  document.querySelectorAll<HTMLButtonElement>("[data-treatment]").forEach((button) => button.addEventListener("click", () => { selectedTreatmentId = button.dataset.treatment || selectedTreatmentId; render(); }));
 }
 
 async function loadDemo(): Promise<void> {
