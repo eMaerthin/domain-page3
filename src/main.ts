@@ -175,13 +175,21 @@ function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>)
   const selectedVideo = videosById.get(selectedVideoId);
   const features = (selected?.shap_values || []).slice(0, 14);
   const maxValue = Math.max(...features.map((item: any) => Math.abs(item.value)), .001);
-  const baseX = 430;
+  const baseX = 500;
+  const formatShapValue = (value: any) => {
+    if (value === null || value === undefined) return "—";
+    if (typeof value === "boolean") return value ? "yes" : "no";
+    if (typeof value === "number") return Math.abs(value) >= 100 ? value.toFixed(1) : value.toFixed(3);
+    return String(value).slice(0, 18);
+  };
+  const shortFeature = (value: string) => value.replaceAll("_", " ").slice(0, 25);
   const waterfall = features.map((item: any, index: number) => {
     const y = 24 + index * 30;
     const width = Math.abs(item.value) / maxValue * 130;
     const x = item.value >= 0 ? baseX : baseX - width;
     const color = item.value >= 0 ? "#22d3ee" : "#fb4fbd";
-    return `<text x="8" y="${y + 12}" fill="#dbe2ff" font-size="11">${escapeHtml(item.feature)}</text><text x="190" y="${y + 12}" fill="#aab1ca" font-size="10">${escapeHtml(String(item.feature_value ?? "—"))}</text><rect x="${x}" y="${y}" width="${width}" height="16" rx="6" fill="${color}"><title>${escapeHtml(item.feature)}: ${item.value.toFixed(4)}</title></rect><text x="${item.value >= 0 ? x + width + 7 : x - 7}" y="${y + 12}" text-anchor="${item.value >= 0 ? "start" : "end"}" fill="#fff" font-size="11">${item.value >= 0 ? "+" : ""}${item.value.toFixed(3)}</text>`;
+    const featureValue = formatShapValue(item.feature_value);
+    return `<text x="8" y="${y + 12}" fill="#dbe2ff" font-size="12">${escapeHtml(shortFeature(item.feature))}</text><text x="270" y="${y + 12}" fill="#aab1ca" font-size="11">${escapeHtml(featureValue)}</text><rect x="${x}" y="${y}" width="${width}" height="16" rx="6" fill="${color}"><title>${escapeHtml(item.feature)}: ${escapeHtml(featureValue)}; SHAP ${item.value.toFixed(3)}</title></rect><text x="${item.value >= 0 ? x + width + 7 : x - 7}" y="${y + 12}" text-anchor="${item.value >= 0 ? "start" : "end"}" fill="#fff" font-size="12">${item.value >= 0 ? "+" : ""}${item.value.toFixed(3)}</text>`;
   }).join("");
   const global = (shap.global_importance || []).slice(0, 14);
   const allValues = Object.values(shap.videos).flatMap((video: any) => video.shap_values || []);
