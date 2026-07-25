@@ -216,6 +216,9 @@ function renderDistribution(points: any[]): void {
   const scores = dated.map((point) => Number(point.perf_score));
   if (!dated.length) return;
   const minTime = Math.min(...times), maxTime = Math.max(...times), minScore = Math.min(...scores), maxScore = Math.max(...scores);
+  const ranked = [...dated].sort((a, b) => Number(a.perf_score) - Number(b.perf_score));
+  const weakIds = new Set(ranked.slice(0, Math.max(1, Math.ceil(ranked.length * .1))).map((point) => point.video_id));
+  const topIds = new Set(ranked.slice(-Math.max(1, Math.ceil(ranked.length * .1))).map((point) => point.video_id));
   const left = 58, right = 18, top = 18, bottom = 42, width = canvas.width - left - right, height = canvas.height - top - bottom;
   const pointLayout: any[] = [];
   const x = (time: number) => left + ((time - minTime) / Math.max(1, maxTime - minTime)) * width;
@@ -235,7 +238,7 @@ function renderDistribution(points: any[]): void {
   context.textAlign = "left";
   for (const point of dated) {
     const px = x(new Date(point.published_at).getTime()), py = y(Number(point.perf_score));
-    context.fillStyle = point.selected && point.tier === "top" ? "#22c55e" : point.selected && (point.tier === "bottom" || point.tier === "weak" || point.tier === "worst") ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
+    context.fillStyle = point.selected && topIds.has(point.video_id) ? "#22c55e" : point.selected && weakIds.has(point.video_id) ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
     context.beginPath(); context.arc(px, py, point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
     pointLayout.push({ point, x: px, y: py });
   }
