@@ -119,11 +119,12 @@ function outcomeChart(treatment: any, rows: any[], videosById: Map<string, any>,
   const max = Math.max(...all);
   const span = Math.max(max - min, 0.001);
   const y = (value: number) => 184 - ((value - min) / span) * 140;
-  const box = (values: number[], x: number, color: string, label: string) => {
+  const box = (rowsForGroup: any[], x: number, color: string, label: string) => {
+    const values = rowsForGroup.map((row) => row[outcomeKey] as number);
     const q1 = quantile(values, .25);
     const med = quantile(values, .5);
     const q3 = quantile(values, .75);
-    const points = values.map((value, index) => `<circle cx="${x + ((index * 37) % 34) - 17}" cy="${y(value)}" r="3.5" fill="${color}" fill-opacity=".48"><title>${label}: ${value.toFixed(3)}</title></circle>`).join("");
+    const points = rowsForGroup.map((row, index) => `<circle class="causal-dot" data-video-id="${escapeHtml(row.video_id || "")}" cx="${x + ((index * 37) % 34) - 17}" cy="${y(row[outcomeKey])}" r="3.5" fill="${color}" fill-opacity=".48"><title>${escapeHtml(row.title || row.video_id || "")} · ${label}: ${Number(row[outcomeKey]).toFixed(3)}</title></circle>`).join("");
     return `${points}<line x1="${x}" y1="${y(Math.min(...values))}" x2="${x}" y2="${y(Math.max(...values))}" stroke="${color}" stroke-width="2"/><rect x="${x - 25}" y="${y(q3)}" width="50" height="${Math.max(2, y(q1) - y(q3))}" fill="${color}" fill-opacity=".18" stroke="${color}" stroke-width="2"/><line x1="${x - 25}" y1="${y(med)}" x2="${x + 25}" y2="${y(med)}" stroke="${color}" stroke-width="3"/><text x="${x}" y="210" text-anchor="middle" fill="#aab1ca">${label} (n=${values.length})</text>`;
   };
   const grid = [0, .25, .5, .75, 1].map((fraction) => {
@@ -148,7 +149,7 @@ function outcomeChart(treatment: any, rows: any[], videosById: Map<string, any>,
   } : {};
   const definition = definitions[treatment.treatment] || treatment.treatment_definition || treatment.treatment_label || treatment.treatment;
   const lift = Number(treatment.estimated_lift_percent || 0);
-  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${lift.toFixed(1)}% LIFT</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-highlight"><div><span class="causal-highlight-label">${currentLocale === "pl" ? "WYSZCZEGÓLNIENIE TREATMENTU" : "TREATMENT DEFINITION"}</span><strong>${escapeHtml(label)}</strong><p>${currentLocale === "pl" ? "To oznacza: " : "This means: "}${escapeHtml(definition)}.</p></div><div class="causal-lift ${lift < 0 ? "negative" : "positive"}"><span>LIFT</span><strong>${lift >= 0 ? "+" : ""}${lift.toFixed(1)}%</strong><small>${currentLocale === "pl" ? "zaobserwowana różnica" : "observed difference"}</small></div></div><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, currentLocale === "pl" ? "Grupa treatmentu" : "Treated")}${thumbs(control, currentLocale === "pl" ? "Grupa kontrolna" : "Control")}</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated.map((row) => row[outcomeKey]), 240, "#5b5ce2", currentLocale === "pl" ? "Treatment" : "Treated")}${box(control.map((row) => row[outcomeKey]), 520, "#e6814f", currentLocale === "pl" ? "Kontrola" : "Control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
+  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${lift.toFixed(1)}% LIFT</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-highlight"><div><span class="causal-highlight-label">${currentLocale === "pl" ? "WYSZCZEGÓLNIENIE TREATMENTU" : "TREATMENT DEFINITION"}</span><strong>${escapeHtml(label)}</strong><p>${currentLocale === "pl" ? "To oznacza: " : "This means: "}${escapeHtml(definition)}.</p></div><div class="causal-lift ${lift < 0 ? "negative" : "positive"}"><span>LIFT</span><strong>${lift >= 0 ? "+" : ""}${lift.toFixed(1)}%</strong><small>${currentLocale === "pl" ? "zaobserwowana różnica" : "observed difference"}</small></div></div><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, currentLocale === "pl" ? "Grupa treatmentu" : "Treated")}${thumbs(control, currentLocale === "pl" ? "Grupa kontrolna" : "Control")}</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated, 240, "#5b5ce2", currentLocale === "pl" ? "Treatment" : "Treated")}${box(control, 520, "#e6814f", currentLocale === "pl" ? "Kontrola" : "Control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
 }
 
 function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any>): void {
@@ -159,7 +160,31 @@ function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any
     target.innerHTML = `<p>${text[currentLocale].noCausal}</p>`;
     return;
   }
-  target.innerHTML = treatments.map((treatment: any) => outcomeChart(treatment, rows, videosById, currentLocale)).join("");
+  target.innerHTML = `${treatments.map((treatment: any) => outcomeChart(treatment, rows, videosById, currentLocale)).join("")}<div id="causalTooltip" class="distribution-tooltip causal-tooltip" hidden></div><div id="causalVideoDetail" class="video-detail-card muted">Hover a point for details; click it to inspect the video.</div>`;
+  const tooltip = target.querySelector<HTMLElement>("#causalTooltip");
+  const detail = target.querySelector<HTMLElement>("#causalVideoDetail");
+  target.querySelectorAll<SVGCircleElement>(".causal-dot").forEach((dot) => {
+    const video = videosById.get(dot.dataset.videoId || "");
+    dot.addEventListener("pointerenter", () => {
+      if (!tooltip || !video) return;
+      tooltip.innerHTML = `<strong>${escapeHtml(video.title || video.video_id)}</strong><br/>${date(video.published_at)} · ${format(video.views)} ${text[currentLocale].views}<br/>Outcome: ${dot.querySelector("title")?.textContent?.split("·").pop()?.trim() || "—"}`;
+      tooltip.hidden = false;
+      tooltip.style.display = "block";
+    });
+    dot.addEventListener("pointermove", (event) => {
+      if (!tooltip) return;
+      tooltip.style.position = "fixed";
+      tooltip.style.left = `${Math.min(event.clientX + 12, window.innerWidth - tooltip.offsetWidth - 10)}px`;
+      tooltip.style.top = `${Math.min(event.clientY + 12, window.innerHeight - tooltip.offsetHeight - 10)}px`;
+    });
+    dot.addEventListener("pointerleave", () => { if (tooltip) { tooltip.hidden = true; tooltip.style.display = "none"; } });
+    dot.addEventListener("click", () => {
+      if (!detail || !video) return;
+      detail.style.display = "block";
+      detail.classList.remove("muted");
+      detail.innerHTML = `<a href="${escapeHtml(video.video_url || "#")}" target="_blank" rel="noreferrer">${video.thumbnail_url ? `<img src="${escapeHtml(video.thumbnail_url)}" alt="" />` : ""}<div><strong class="video-detail-title">${escapeHtml(video.title || video.video_id)}</strong><div class="video-detail-meta">${date(video.published_at)} · ${format(video.views)} ${text[currentLocale].views} · ${format(video.likes)} ${text[currentLocale].likes}</div></div></a>`;
+    });
+  });
 }
 
 function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>): void {
