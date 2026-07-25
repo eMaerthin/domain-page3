@@ -235,7 +235,7 @@ function renderDistribution(points: any[]): void {
   context.textAlign = "left";
   for (const point of dated) {
     const px = x(new Date(point.published_at).getTime()), py = y(Number(point.perf_score));
-    context.fillStyle = point.selected && point.tier === "top" ? "#22c55e" : point.selected && point.tier === "bottom" ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
+    context.fillStyle = point.selected && point.tier === "top" ? "#22c55e" : point.selected && (point.tier === "bottom" || point.tier === "weak" || point.tier === "worst") ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
     context.beginPath(); context.arc(px, py, point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
     pointLayout.push({ point, x: px, y: py });
   }
@@ -331,7 +331,7 @@ function render(): void {
       </section>
       <section class="section chart-section">
         <div class="section-heading"><div><p class="eyebrow">03 / distribution</p><h2>${t.distribution}</h2><p class="section-description">${t.distributionHelp}</p></div></div>
-        <div class="distribution distribution-chart"><canvas id="distributionCanvas" width="1000" height="360"></canvas><div id="distributionTooltip" class="distribution-tooltip" hidden></div></div>
+        <div class="distribution-legend"><span><i class="legend-dot top"></i>${currentLocale === "pl" ? "Najlepsze 10%" : "Top 10%"}</span><span><i class="legend-dot weak"></i>${currentLocale === "pl" ? "Najsłabsze 10%" : "Weakest 10%"}</span><span><i class="legend-dot other"></i>${currentLocale === "pl" ? "Pozostałe wybrane" : "Other selected"}</span><span><i class="legend-dot observed"></i>${currentLocale === "pl" ? "Nie wybrane" : "Not selected"}</span></div><div class="distribution distribution-chart"><canvas id="distributionCanvas" width="1000" height="360"></canvas><div id="distributionTooltip" class="distribution-tooltip" hidden></div></div>
         <div id="distributionDetail" class="video-detail-card muted">Click a point to inspect that video.</div>
       </section>
       <section class="section premium-section">
