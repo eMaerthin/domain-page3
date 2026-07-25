@@ -222,7 +222,7 @@ function renderDistribution(points: any[]): void {
   const left = 58, right = 18, top = 18, bottom = 42, width = canvas.width - left - right, height = canvas.height - top - bottom;
   const pointLayout: any[] = [];
   const x = (time: number) => left + ((time - minTime) / Math.max(1, maxTime - minTime)) * width;
-  const y = (scoreValue: number) => top + height - ((scoreValue - minScore) / Math.max(.001, maxScore - minScore)) * height;
+  const y = (scoreValue: number) => Math.min(top + height - 7, Math.max(top + 7, top + height - ((scoreValue - minScore) / Math.max(.001, maxScore - minScore)) * height));
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.strokeStyle = "#3b4569"; context.fillStyle = "#aab1ca"; context.font = "12px sans-serif";
   for (let index = 0; index <= 4; index += 1) {
@@ -243,7 +243,13 @@ function renderDistribution(points: any[]): void {
   for (const point of drawOrder) {
     const px = x(new Date(point.published_at).getTime()), py = y(Number(point.perf_score));
     context.fillStyle = point.selected && topIds.has(point.video_id) ? "#22c55e" : point.selected && weakIds.has(point.video_id) ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
-    context.beginPath(); context.arc(px, py, point.selected && (topIds.has(point.video_id) || weakIds.has(point.video_id)) ? 5.5 : point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
+    const isWeak = weakIds.has(point.video_id);
+    context.beginPath(); context.arc(px, py, point.selected && (topIds.has(point.video_id) || isWeak) ? 6 : point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
+    if (point.selected && isWeak) {
+      context.strokeStyle = "#e9d5ff";
+      context.lineWidth = 1.5;
+      context.stroke();
+    }
     pointLayout.push({ point, x: px, y: py });
   }
   const nearest = (event: MouseEvent) => {
