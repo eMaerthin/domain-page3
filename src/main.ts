@@ -106,9 +106,16 @@ function render(): void {
   const videos = dataset.videos;
   const groups = dataset.groups;
   const evidence = dataset.evidence;
-  const top = groups.top_preview || groups.top?.slice(0, 10) || [];
-  const bottom = groups.bottom_preview || groups.bottom?.slice(0, 10) || [];
-  const recent = groups.recent?.slice(0, 5) || [];
+  const videosById = new Map(videos.map((video: any) => [video.video_id, video]));
+  const featuresById = new Map((dataset.feature_rows || []).map((row: any) => [row.video_id, row]));
+  const resolveVideos = (items: any[] = []) => items.map((item) => {
+    const video = typeof item === "string" ? videosById.get(item) : item;
+    const feature: any = video ? featuresById.get(video.video_id) : undefined;
+    return video ? { ...video, perf_score: feature?.perf_score ?? video.perf_score } : null;
+  }).filter(Boolean);
+  const top = resolveVideos(groups.top_preview || groups.top?.slice(0, 10));
+  const bottom = resolveVideos(groups.bottom_preview || groups.bottom?.slice(0, 10));
+  const recent = resolveVideos(groups.recent?.slice(0, 5));
   const insights = evidence.insights?.triggered || evidence.insights?.features || [];
   const model = evidence.predictive_model || {};
   const shap = model.shap || {};
