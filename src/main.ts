@@ -12,7 +12,7 @@ const text = {
   en: {
     eyebrow: "Creator intelligence / cached demo",
     title: "Find the peak.",
-    subtitle: "A static, instant preview of what makes MrBeast’s public content perform.",
+    subtitle: "We are building an intelligence engine that identifies what matters most and what can translate into stronger video viewership for any YouTube channel. In the meantime, explore this demo based on MrBeast’s public channel data.",
     demo: "DEMO PROFILE",
     explore: "Explore the full demo",
     videos: "videos",
@@ -51,6 +51,7 @@ const text = {
     noCausal: "No treatment met the sample and overlap conditions. No unreliable causal claim is shown.",
     modelUnavailable: "The cached demo has no reliable SHAP model for this snapshot.",
     quickLinks: "Quick links",
+    executiveSummary: "Executive summary",
     reportLink: "Overview",
     distributionLink: "Distribution",
     shapLink: "SHAP",
@@ -58,11 +59,17 @@ const text = {
     comingSoonTitle: "More creator intelligence is coming soon.",
     comingSoonText: "SNAPIK is preparing additional creator reports and tools. Waiting-list registration will open soon.",
     waitingListSoon: "Subscribe to join the waiting list",
+    waitlistEmail: "Your email address",
+    waitlistButton: "Join the waiting list",
+    waitlistSuccess: "Thanks — you are on the waiting list.",
+    waitlistError: "Something went wrong. Please try again.",
+    pauseVideo: "Pause video",
+    resumeVideo: "Resume video",
   },
   pl: {
     eyebrow: "Inteligencja twórców / demo z cache",
     title: "Znajdź szczyt.",
-    subtitle: "Statyczny, natychmiastowy podgląd tego, co napędza publiczne treści MrBeasta.",
+    subtitle: "Pracujemy nad silnikiem, który wychwytuje najważniejsze czynniki i pokazuje, co może przekładać się na lepszą oglądalność filmów dowolnego kanału YouTube. W międzyczasie zapraszamy do obejrzenia dema opartego na publicznych danych kanału MrBeast.",
     demo: "PROFIL DEMO",
     explore: "Otwórz pełne demo",
     videos: "filmów",
@@ -101,6 +108,7 @@ const text = {
     noCausal: "Żaden wariant nie spełnił warunków liczebności i nakładania grup. Nie pokazujemy niewiarygodnego wniosku przyczynowego.",
     modelUnavailable: "W tym zrzucie demo nie ma wiarygodnego modelu SHAP.",
     quickLinks: "Szybkie przejście",
+    executiveSummary: "Podsumowanie",
     reportLink: "Przegląd",
     distributionLink: "Rozkład",
     shapLink: "SHAP",
@@ -108,6 +116,12 @@ const text = {
     comingSoonTitle: "Więcej analiz twórców już wkrótce.",
     comingSoonText: "SNAPIK przygotowuje kolejne raporty i narzędzia dla twórców. Zapisy na listę oczekujących zostaną otwarte wkrótce.",
     waitingListSoon: "Zapisz się na listę oczekujących",
+    waitlistEmail: "Twój adres e-mail",
+    waitlistButton: "Dołącz do listy oczekujących",
+    waitlistSuccess: "Dziękujemy — jesteś na liście oczekujących.",
+    waitlistError: "Coś poszło nie tak. Spróbuj ponownie.",
+    pauseVideo: "Wstrzymaj film",
+    resumeVideo: "Wznów film",
   },
 } as const;
 
@@ -427,8 +441,6 @@ function render(): void {
   const distribution = evidence.distribution_points || [];
   const featureDifferences = insights.filter((item: any) => item.triggered !== false).sort((a: any, b: any) => Number(b.importance || 0) - Number(a.importance || 0)).slice(0, 10);
   const strongPairs = (evidence.insights?.pairs || []).filter((item: any) => Number(item.importance || 0) >= .5).sort((a: any, b: any) => Number(b.importance || 0) - Number(a.importance || 0)).slice(0, 8);
-  const shapSectionNumber = strongPairs.length ? "05" : "04";
-  const causalSectionNumber = strongPairs.length ? "06" : "05";
   const eligibleTreatments = causal.eligible_treatments || [];
   if (!selectedTreatmentId && eligibleTreatments.length) selectedTreatmentId = eligibleTreatments[0].treatment;
   const selectedTreatment = eligibleTreatments.find((item: any) => item.treatment === selectedTreatmentId) || eligibleTreatments[0];
@@ -454,15 +466,14 @@ function render(): void {
         </div>
         <div class="hero-orbit"><div class="orbit-ring"></div><div class="orbit-core"><span>PEAK</span><strong>MrBeast</strong></div><i></i><i></i><i></i></div>
       </section>
-      <section id="report" class="profile-strip">
-        <div><span class="label">${t.demo}</span><h2>${profile.display_name}</h2><a href="${profile.profile_url}" target="_blank" rel="noreferrer">@${profile.handle} ↗</a></div>
-        <div class="profile-stat"><strong>${compact(profile.followers)}</strong><span>${t.subscribers}</span></div>
-        <div class="profile-stat"><strong>${format(profile.total_videos)}</strong><span>${t.videos}</span></div>
-        <div class="profile-stat"><strong>${format(evidence.analyzed_videos)}</strong><span>${t.analyzed}</span></div>
-      </section>
-      <section class="section">
-        <div class="section-heading"><div><p class="eyebrow">01 / signal</p><h2>${t.pattern}</h2></div><span class="section-note">${profile.total_videos} ${t.videos}</span></div>
-        <div class="insight-grid">${insights.slice(0, 3).map((item: any, index: number) => `<article class="insight-card"><span>0${index + 1}</span><p>${escapeHtml(typeof item === "string" ? item : item.text || item.label || "Observed performance pattern.")}</p></article>`).join("")}</div>
+      <section id="report" class="section executive-summary">
+        <div class="section-heading"><div><p class="eyebrow">01 / executive summary</p><h2>${t.executiveSummary}</h2></div><span class="section-note">${profile.display_name}</span></div>
+        <div class="profile-strip">
+          <div><span class="label">${t.demo}</span><h2>${profile.display_name}</h2><a href="${profile.profile_url}" target="_blank" rel="noreferrer">@${profile.handle} ↗</a></div>
+          <div class="profile-stat"><strong>${compact(profile.followers)}</strong><span>${t.subscribers}</span></div>
+          <div class="profile-stat"><strong>${format(profile.total_videos)}</strong><span>${t.videos}</span></div>
+          <div class="profile-stat"><strong>${format(evidence.analyzed_videos)}</strong><span>${t.analyzed}</span></div>
+        </div>
       </section>
       <section class="section">
         <div class="section-heading"><div><p class="eyebrow">02 / portfolio</p><h2>${t.top}</h2></div><span class="section-note">${t.selected}</span></div>
@@ -476,7 +487,7 @@ function render(): void {
         <div id="distributionDetail" class="video-detail-card muted">Click a point to inspect that video.</div>
       </section>
       <section class="section feature-diff-section">
-        <div class="section-heading"><div><p class="eyebrow">03b / contrast</p><h2>${t.featureDiff}</h2><p class="section-description">${t.featureDiffHelp}</p></div></div>
+        <div class="section-heading"><div><p class="eyebrow">04 / contrast</p><h2>${t.featureDiff}</h2><p class="section-description">${t.featureDiffHelp}</p></div></div>
         <div class="feature-diff-list">${featureDifferences.map((item: any) => {
           const topValue = Number(item.top_value || 0);
           const worstValue = Number(item.bottom_value || 0);
@@ -486,23 +497,66 @@ function render(): void {
       </section>
       ${strongPairs.length ? `<section class="section feature-diff-section"><div class="section-heading"><div><p class="eyebrow">04 / combinations</p><h2>${t.pairDiff}</h2><p class="section-description">${t.pairDiffHelp}</p></div></div><div class="feature-diff-list">${strongPairs.map((item: any) => `<article class="feature-diff-row"><div class="feature-diff-label"><strong>${escapeHtml(currentLocale === "pl" ? item.label || item.label_en || item.key : item.label_en || item.label || item.key)}</strong><span>pair importance ${Number(item.importance).toFixed(2)}</span></div><div class="feature-diff-values"><div class="feature-diff-group"><span>${t.topGroup}</span><i><b class="top-bar" style="width:${Math.min(100, Number(item.top_value || 0) * 100)}%"></b></i><em>${escapeHtml(item.top_display || "—")}</em></div><div class="feature-diff-group"><span>${t.worstGroup}</span><i><b class="worst-bar" style="width:${Math.min(100, Number(item.bottom_value || 0) * 100)}%"></b></i><em>${escapeHtml(item.bottom_display || "—")}</em></div></div></article>`).join("")}</div></section>` : ""}
       <section class="section premium-section">
-        <div class="section-heading"><div><p class="eyebrow">${shapSectionNumber} / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
+        <div class="section-heading"><div><p class="eyebrow">05 / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
         <div id="shapInteractive"></div>
       </section>
       <section class="section causal-section">
-        <div class="section-heading"><div><p class="eyebrow">${causalSectionNumber} / caution</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
+        <div class="section-heading"><div><p class="eyebrow">06 / causal exploration</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
         <div class="causal-guide"><strong>${currentLocale === "pl" ? "Jak czytać wykresy" : "How to read the plots"}</strong><p>${t.causalGuide}</p></div>
         <div id="causalInteractive" class="causal-copy"></div>
       </section>
     </main>
-    <section id="comingSoon" class="coming-soon"><div><p class="eyebrow">${t.waitingListSoon}</p><h2>${t.comingSoonTitle}</h2><p>${t.comingSoonText}</p></div><span class="coming-soon-badge">SNAPIK / SOON</span></section>
+    <section id="comingSoon" class="coming-soon"><div><p class="eyebrow">${t.waitingListSoon}</p><h2>${t.comingSoonTitle}</h2><p>${t.comingSoonText}</p><form id="waitlistForm" class="waitlist-form"><label><span class="sr-only">${t.waitlistEmail}</span><input type="email" name="email" placeholder="${t.waitlistEmail}" autocomplete="email" required /></label><input type="hidden" name="_subject" value="SNAPIK waiting list" /><input type="hidden" name="language" value="${currentLocale}" /><button type="submit">${t.waitlistButton}</button></form><p id="waitlistMessage" class="waitlist-message" role="status" aria-live="polite"></p><div class="coming-soon-media"><div class="coming-soon-video-wrap"><video id="comingSoonVideo" class="coming-soon-video" autoplay muted playsinline preload="auto"><source src="./assets/step-initial.mp4" type="video/mp4" /></video><button id="comingSoonToggle" class="video-toggle" type="button" aria-label="${t.pauseVideo}" title="${t.pauseVideo}">Ⅱ</button></div><span class="coming-soon-badge">SNAPIK / SOON</span></div></div></section>
     <footer><span>SNAPIK / find the peak</span><span>${t.demo} · ${profile.display_name}</span></footer>`;
 
   renderShapPanel(shap, videos, videosById);
   renderCausalPanel(causal, dataset.feature_rows || [], videosById);
   renderDistribution(distribution);
+  $("#comingSoonVideo").addEventListener("ended", (event) => {
+    const video = event.currentTarget as HTMLVideoElement;
+    if (video.dataset.loopStarted) return;
+    video.dataset.loopStarted = "true";
+    video.src = "./assets/step-continuous.mp4";
+    video.loop = true;
+    video.play().catch(() => undefined);
+  });
+  $("#comingSoonToggle").addEventListener("click", () => {
+    const video = $("#comingSoonVideo") as HTMLVideoElement;
+    const toggle = $("#comingSoonToggle") as HTMLButtonElement;
+    if (video.paused) {
+      video.play().catch(() => undefined);
+      toggle.textContent = "Ⅱ";
+      toggle.setAttribute("aria-label", t.pauseVideo);
+      toggle.title = t.pauseVideo;
+    } else {
+      video.pause();
+      toggle.textContent = "▶";
+      toggle.setAttribute("aria-label", t.resumeVideo);
+      toggle.title = t.resumeVideo;
+    }
+  });
   $("#language").addEventListener("click", () => { currentLocale = currentLocale === "pl" ? "en" : "pl"; void loadDemo(); });
   $("#print").addEventListener("click", () => window.print());
+  $("#waitlistForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const button = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+    const message = $("#waitlistMessage");
+    button.disabled = true;
+    message.textContent = "";
+    try {
+      const response = await fetch("https://formspree.io/f/xwvgwyyr", { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error("Formspree submission failed");
+      form.reset();
+      message.className = "waitlist-message success";
+      message.textContent = t.waitlistSuccess;
+    } catch {
+      message.className = "waitlist-message error";
+      message.textContent = t.waitlistError;
+    } finally {
+      button.disabled = false;
+    }
+  });
   document.querySelectorAll<HTMLButtonElement>("[data-video]").forEach((button) => button.addEventListener("click", () => { selectedVideoId = button.dataset.video || ""; render(); }));
   document.querySelectorAll<HTMLButtonElement>("[data-shap]").forEach((button) => button.addEventListener("click", () => { selectedVideoId = button.dataset.shap || selectedVideoId; render(); }));
   document.querySelectorAll<HTMLButtonElement>("[data-treatment]").forEach((button) => button.addEventListener("click", () => { selectedTreatmentId = button.dataset.treatment || selectedTreatmentId; render(); }));
