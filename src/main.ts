@@ -201,7 +201,7 @@ function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>)
       if (!found) return "";
       const x = 430 + (found.value / range) * 260;
       const title = videosById.get(videoId)?.title || videoId;
-      return `<circle class="shap-dot" data-video-id="${videoId}" cx="${x}" cy="${y + ((Math.abs(found.value * 997) % 11) - 5)}" r="3.5" fill="${found.value >= 0 ? "#22d3ee" : "#fb4fbd"}"><title>${escapeHtml(title)} — ${escapeHtml(item.feature)}: ${found.value.toFixed(4)}</title></circle>`;
+      return `<circle class="shap-dot" data-video-id="${videoId}" data-feature="${escapeHtml(item.feature)}" cx="${x}" cy="${y + ((Math.abs(found.value * 997) % 11) - 5)}" r="4.5" fill="${found.value >= 0 ? "#22d3ee" : "#fb4fbd"}" style="pointer-events:all"><title>${escapeHtml(title)} — ${escapeHtml(item.feature)}: ${found.value.toFixed(4)}</title></circle>`;
     }).join("");
     return `<text x="8" y="${y + 4}" fill="#dbe2ff" font-size="11">${escapeHtml(item.feature)}</text>${dots}`;
   }).join("");
@@ -213,21 +213,22 @@ function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>)
   });
   const globalTooltip = target.querySelector<HTMLElement>("#shapGlobalTooltip");
   target.querySelectorAll<SVGCircleElement>(".shap-dot").forEach((dot) => {
-    dot.addEventListener("mouseenter", () => {
+    dot.addEventListener("pointerenter", () => {
       const videoId = dot.dataset.videoId || "";
       const video = shap.videos[videoId];
       const item = (video?.shap_values || []).find((value: any) => value.feature === dot.dataset.feature);
       if (!globalTooltip || !item) return;
       globalTooltip.innerHTML = `<strong>${escapeHtml(videosById.get(videoId)?.title || videoId)}</strong><br/>${escapeHtml(item.feature)} · SHAP: ${Number(item.value).toFixed(3)}<br/>${escapeHtml(`feature value: ${formatShapValue(item.feature_value)}`)}`;
       globalTooltip.hidden = false;
+      globalTooltip.style.display = "block";
     });
-    dot.addEventListener("mousemove", (event) => {
+    dot.addEventListener("pointermove", (event) => {
       if (!globalTooltip) return;
       globalTooltip.style.position = "fixed";
-      globalTooltip.style.left = `${event.clientX + 12}px`;
-      globalTooltip.style.top = `${event.clientY + 12}px`;
+      globalTooltip.style.left = `${Math.min(event.clientX + 14, window.innerWidth - globalTooltip.offsetWidth - 10)}px`;
+      globalTooltip.style.top = `${Math.min(event.clientY + 14, window.innerHeight - globalTooltip.offsetHeight - 10)}px`;
     });
-    dot.addEventListener("mouseleave", () => { if (globalTooltip) globalTooltip.hidden = true; });
+    dot.addEventListener("pointerleave", () => { if (globalTooltip) { globalTooltip.hidden = true; globalTooltip.style.display = "none"; } });
     dot.addEventListener("click", () => { selectedVideoId = dot.dataset.videoId || selectedVideoId; renderShapPanel(shap, videos, videosById); });
   });
   target.querySelectorAll<HTMLButtonElement>("[data-shap]").forEach((button) => button.addEventListener("click", () => { selectedVideoId = button.dataset.shap || selectedVideoId; renderShapPanel(shap, videos, videosById); }));
