@@ -29,6 +29,7 @@ const text = {
     shapHelp: "SHAP shows which observable features move a model prediction up or down. It describes the model, not causality.",
     causal: "Causal exploration",
     causalHelp: "Observational comparisons are shown only when sample size and overlap support a responsible interpretation.",
+    causalGuide: "How to read the plots: each dot is one video; the boxplot shows the middle 50% of outcomes, with the line inside marking the median. The y-axis is the log age-normalized view rate — a view-performance measure adjusted for how long a video has been published, then log-scaled so extreme hits do not dominate the chart. The 95% interval is the uncertainty range around the estimated effect; a wide interval means less precision, and an interval crossing zero means the direction is not conclusive.",
     watch: "Watch on YouTube",
     views: "views",
     likes: "likes",
@@ -59,6 +60,7 @@ const text = {
     shapHelp: "SHAP pokazuje, które obserwowalne cechy podnoszą lub obniżają predykcję modelu. Nie opisuje przyczynowości.",
     causal: "Analiza przyczynowa",
     causalHelp: "Porównania obserwacyjne pokazujemy tylko wtedy, gdy liczebność i nakładanie grup pozwalają na odpowiedzialną interpretację.",
+    causalGuide: "Jak czytać wykresy: każda kropka to jeden film; boxplot pokazuje środkowe 50% wyników, a linia w środku oznacza medianę. Oś Y przedstawia logarytmiczny, znormalizowany względem wieku filmu wskaźnik wyświetleń — wynik uwzględnia, jak długo film jest opublikowany, a logarytm ogranicza wpływ skrajnych viralowych wyników. Przedział 95% pokazuje niepewność oszacowanego efektu; szeroki przedział oznacza mniejszą precyzję, a przedział obejmujący zero oznacza, że kierunek efektu nie jest rozstrzygający.",
     watch: "Otwórz na YouTube",
     views: "wyświetleń",
     likes: "polubień",
@@ -428,6 +430,7 @@ function render(): void {
       </section>
       <section class="section causal-section">
         <div class="section-heading"><div><p class="eyebrow">06 / caution</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
+        <div class="causal-guide"><strong>${currentLocale === "pl" ? "Jak czytać wykresy" : "How to read the plots"}</strong><p>${t.causalGuide}</p></div>
         <div id="causalInteractive" class="causal-copy"></div>
       </section>
     </main>
