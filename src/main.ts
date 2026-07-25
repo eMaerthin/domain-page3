@@ -316,7 +316,7 @@ function render(): void {
   document.documentElement.lang = currentLocale;
   $("#app").innerHTML = `
     <header class="site-header">
-      <a class="brand" href="#"><span class="brand-mark">S</span><span>SNAPIK</span></a>
+      <a class="brand" href="#"><img class="brand-icon" src="./assets/snapik-icon.png" alt="" /><span>SNAPIK</span></a>
       <div class="header-actions"><span class="static-pill">STATIC DEMO</span><button id="language" class="language-button">${t.language}</button></div>
     </header>
     <main>
