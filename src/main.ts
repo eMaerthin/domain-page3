@@ -32,6 +32,12 @@ const text = {
     pairDiffHelp: "Only combinations with a strong observed difference are shown. This is exploratory association, not causality.",
     shap: "Explainable AI (SHAP)",
     shapHelp: "SHAP shows which observable features move a model prediction up or down. It describes the model, not causality.",
+    globalShap: "Global SHAP pattern",
+    shapBase: "Base",
+    shapPrediction: "Prediction",
+    previous: "Previous",
+    next: "Next",
+    shapSliderLabel: "Browse SHAP videos",
     causal: "Causal exploration",
     causalHelp: "Observational comparisons are shown only when sample size and overlap support a responsible interpretation.",
     causalGuide: "How to read the plots: each dot is one video; the boxplot shows the middle 50% of outcomes, with the line inside marking the median. The y-axis is the log age-normalized view rate — a view-performance measure adjusted for how long a video has been published, then log-scaled so extreme hits do not dominate the chart. The 95% interval is the uncertainty range around the estimated effect; a wide interval means less precision, and an interval crossing zero means the direction is not conclusive.",
@@ -68,6 +74,12 @@ const text = {
     pairDiffHelp: "Pokazujemy tylko kombinacje z wyraźną zaobserwowaną różnicą. To zależność eksploracyjna, a nie przyczynowość.",
     shap: "Wyjaśnialne AI (SHAP)",
     shapHelp: "SHAP pokazuje, które obserwowalne cechy podnoszą lub obniżają predykcję modelu. Nie opisuje przyczynowości.",
+    globalShap: "Globalny wzorzec SHAP",
+    shapBase: "Baza",
+    shapPrediction: "Predykcja",
+    previous: "Poprzedni",
+    next: "Następny",
+    shapSliderLabel: "Przeglądaj filmy SHAP",
     causal: "Analiza przyczynowa",
     causalHelp: "Porównania obserwacyjne pokazujemy tylko wtedy, gdy liczebność i nakładanie grup pozwalają na odpowiedzialną interpretację.",
     causalGuide: "Jak czytać wykresy: każda kropka to jeden film; boxplot pokazuje środkowe 50% wyników, a linia w środku oznacza medianę. Oś Y przedstawia logarytmiczny, znormalizowany względem wieku filmu wskaźnik wyświetleń — wynik uwzględnia, jak długo film jest opublikowany, a logarytm ogranicza wpływ skrajnych viralowych wyników. Przedział 95% pokazuje niepewność oszacowanego efektu; szeroki przedział oznacza mniejszą precyzję, a przedział obejmujący zero oznacza, że kierunek efektu nie jest rozstrzygający.",
@@ -88,6 +100,16 @@ const format = (value: number | null | undefined) => value == null ? "—" : new
 const compact = (value: number | null | undefined) => value == null ? "—" : new Intl.NumberFormat(currentLocale, { notation: "compact", maximumFractionDigits: 1 }).format(value);
 const date = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(currentLocale, { dateStyle: "medium" }).format(new Date(value)) : "—";
 const score = (video: any) => Number(video?.perf_score ?? video?.performance_score ?? 0);
+const featureLabelsPl: Record<string, string> = {
+  days_since_publication: "Dni od publikacji", recent_7_uploads: "Ostatnie 7 publikacji",
+  title_description_overlap: "Pokrycie tytułu i opisu", recent_30_uploads: "Ostatnie 30 publikacji",
+  caption_readability: "Czytelność opisu", title_negative_words: "Negatywne słowa w tytule",
+  title_uppercase_ratio: "Udział wielkich liter w tytule", title_repeated_punctuation: "Powtórzona interpunkcja w tytule",
+  caption_lexical_diversity: "Różnorodność leksykalna opisu", caption_avg_sentence_length: "Średnia długość zdania w opisie",
+  caption_negative_words: "Negatywne słowa w opisie", duration_seconds: "Długość filmu (sekundy)",
+  has_call_to_action: "Wezwanie do działania", published_hour: "Godzina publikacji",
+};
+const localizeFeature = (feature: string) => currentLocale === "pl" ? (featureLabelsPl[feature] || feature.replaceAll("_", " ")) : feature.replaceAll("_", " ");
 
 function report(): any {
   return demoData;
@@ -232,18 +254,18 @@ function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>)
   const baseX = 500;
   const formatShapValue = (value: any) => {
     if (value === null || value === undefined) return "—";
-    if (typeof value === "boolean") return value ? "yes" : "no";
+    if (typeof value === "boolean") return currentLocale === "pl" ? (value ? "tak" : "nie") : (value ? "yes" : "no");
     if (typeof value === "number") return Math.abs(value) >= 100 ? value.toFixed(1) : value.toFixed(3);
     return String(value).slice(0, 18);
   };
-  const shortFeature = (value: string) => value.replaceAll("_", " ").slice(0, 25);
+  const shortFeature = (value: string) => localizeFeature(value).slice(0, 25);
   const waterfall = features.map((item: any, index: number) => {
     const y = 24 + index * 30;
     const width = Math.abs(item.value) / maxValue * 130;
     const x = item.value >= 0 ? baseX : baseX - width;
     const color = item.value >= 0 ? "#22d3ee" : "#fb4fbd";
     const featureValue = formatShapValue(item.feature_value);
-    return `<text x="8" y="${y + 12}" fill="#dbe2ff" font-size="12">${escapeHtml(shortFeature(item.feature))}</text><text x="270" y="${y + 12}" fill="#aab1ca" font-size="11">${escapeHtml(featureValue)}</text><rect x="${x}" y="${y}" width="${width}" height="16" rx="6" fill="${color}"><title>${escapeHtml(item.feature)}: ${escapeHtml(featureValue)}; SHAP ${item.value.toFixed(3)}</title></rect><text x="${item.value >= 0 ? x + width + 7 : x - 7}" y="${y + 12}" text-anchor="${item.value >= 0 ? "start" : "end"}" fill="#fff" font-size="12">${item.value >= 0 ? "+" : ""}${item.value.toFixed(3)}</text>`;
+    return `<text x="8" y="${y + 12}" fill="#dbe2ff" font-size="12">${escapeHtml(shortFeature(item.feature))}</text><text x="270" y="${y + 12}" fill="#aab1ca" font-size="11">${escapeHtml(featureValue)}</text><rect x="${x}" y="${y}" width="${width}" height="16" rx="6" fill="${color}"><title>${escapeHtml(localizeFeature(item.feature))}: ${escapeHtml(featureValue)}; SHAP ${item.value.toFixed(3)}</title></rect><text x="${item.value >= 0 ? x + width + 7 : x - 7}" y="${y + 12}" text-anchor="${item.value >= 0 ? "start" : "end"}" fill="#fff" font-size="12">${item.value >= 0 ? "+" : ""}${item.value.toFixed(3)}</text>`;
   }).join("");
   const global = (shap.global_importance || []).slice(0, 14);
   const allValues = Object.values(shap.videos).flatMap((video: any) => video.shap_values || []);
@@ -255,12 +277,12 @@ function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>)
       if (!found) return "";
       const x = 430 + (found.value / range) * 260;
       const title = videosById.get(videoId)?.title || videoId;
-      return `<circle class="shap-dot" data-video-id="${videoId}" data-feature="${escapeHtml(item.feature)}" cx="${x}" cy="${y + ((Math.abs(found.value * 997) % 11) - 5)}" r="4.5" fill="${found.value >= 0 ? "#22d3ee" : "#fb4fbd"}" style="pointer-events:all"><title>${escapeHtml(title)} — ${escapeHtml(item.feature)}: ${found.value.toFixed(4)}</title></circle>`;
+      return `<circle class="shap-dot" data-video-id="${videoId}" data-feature="${escapeHtml(item.feature)}" cx="${x}" cy="${y + ((Math.abs(found.value * 997) % 11) - 5)}" r="4.5" fill="${found.value >= 0 ? "#22d3ee" : "#fb4fbd"}" style="pointer-events:all"><title>${escapeHtml(title)} — ${escapeHtml(localizeFeature(item.feature))}: ${found.value.toFixed(4)}</title></circle>`;
     }).join("");
-    return `<text x="8" y="${y + 4}" fill="#dbe2ff" font-size="11">${escapeHtml(item.feature)}</text>${dots}`;
+    return `<text x="8" y="${y + 4}" fill="#dbe2ff" font-size="11">${escapeHtml(localizeFeature(item.feature))}</text>${dots}`;
   }).join("");
   const index = videoIds.indexOf(selectedVideoId);
-  target.innerHTML = `<div class="shap-layout"><div class="shap-global"><h3>Global SHAP pattern</h3><div class="shap-chart"><svg viewBox="0 0 760 ${global.length * 25 + 35}"><line x1="430" y1="8" x2="430" y2="${global.length * 25 + 15}" stroke="#8994b5" stroke-dasharray="3 3"/>${rowsSvg}</svg></div><div id="shapGlobalTooltip" class="distribution-tooltip shap-global-tooltip" hidden></div></div><div class="shap-detail"><div class="shap-video-preview"><a href="${escapeHtml(selectedVideo?.video_url || "#")}" target="_blank" rel="noreferrer">${selectedVideo?.thumbnail_url ? `<img src="${escapeHtml(selectedVideo.thumbnail_url)}" alt="" />` : ""}<span><strong>${escapeHtml(selectedVideo?.title || selectedVideoId)}</strong><small>${date(selectedVideo?.published_at)} · ${compact(selectedVideo?.views)} ${text[currentLocale].views}</small></span></a></div><p class="muted">Base: ${Number(shap.base_value).toFixed(3)} → Prediction: ${Number(selected.prediction).toFixed(3)} · ${index + 1} / ${videoIds.length}</p><div class="shap-controls shap-navigation"><button data-shap="${videoIds[Math.max(0, index - 1)]}">← Previous</button><button data-shap="${videoIds[Math.min(videoIds.length - 1, index + 1)]}">Next →</button></div><input id="shapSlider" class="shap-slider" type="range" min="0" max="${Math.max(0, videoIds.length - 1)}" value="${index}" step="1" aria-label="Browse SHAP videos" /><div class="shap-chart"><svg viewBox="0 0 760 ${features.length * 30 + 35}"><line x1="${baseX}" y1="10" x2="${baseX}" y2="${features.length * 30 + 20}" stroke="#8994b5" stroke-dasharray="3 3"/>${waterfall}</svg></div></div></div>`;
+  target.innerHTML = `<div class="shap-layout"><div class="shap-global"><h3>${text[currentLocale].globalShap}</h3><div class="shap-chart"><svg viewBox="0 0 760 ${global.length * 25 + 35}"><line x1="430" y1="8" x2="430" y2="${global.length * 25 + 15}" stroke="#8994b5" stroke-dasharray="3 3"/>${rowsSvg}</svg></div><div id="shapGlobalTooltip" class="distribution-tooltip shap-global-tooltip" hidden></div></div><div class="shap-detail"><div class="shap-video-preview"><a href="${escapeHtml(selectedVideo?.video_url || "#")}" target="_blank" rel="noreferrer">${selectedVideo?.thumbnail_url ? `<img src="${escapeHtml(selectedVideo.thumbnail_url)}" alt="" />` : ""}<span><strong>${escapeHtml(selectedVideo?.title || selectedVideoId)}</strong><small>${date(selectedVideo?.published_at)} · ${compact(selectedVideo?.views)} ${text[currentLocale].views}</small></span></a></div><p class="muted">${text[currentLocale].shapBase}: ${Number(shap.base_value).toFixed(3)} → ${text[currentLocale].shapPrediction}: ${Number(selected.prediction).toFixed(3)} · ${index + 1} / ${videoIds.length}</p><div class="shap-controls shap-navigation"><button data-shap="${videoIds[Math.max(0, index - 1)]}">← ${text[currentLocale].previous}</button><button data-shap="${videoIds[Math.min(videoIds.length - 1, index + 1)]}">${text[currentLocale].next} →</button></div><input id="shapSlider" class="shap-slider" type="range" min="0" max="${Math.max(0, videoIds.length - 1)}" value="${index}" step="1" aria-label="${text[currentLocale].shapSliderLabel}" /><div class="shap-chart"><svg viewBox="0 0 760 ${features.length * 30 + 35}"><line x1="${baseX}" y1="10" x2="${baseX}" y2="${features.length * 30 + 20}" stroke="#8994b5" stroke-dasharray="3 3"/>${waterfall}</svg></div></div></div>`;
   target.querySelector<HTMLInputElement>("#shapSlider")?.addEventListener("input", (event) => {
     selectedVideoId = videoIds[Number((event.target as HTMLInputElement).value)] || selectedVideoId;
     renderShapPanel(shap, videos, videosById);
@@ -272,7 +294,7 @@ function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>)
       const video = shap.videos[videoId];
       const item = (video?.shap_values || []).find((value: any) => value.feature === dot.dataset.feature);
       if (!globalTooltip || !item) return;
-      globalTooltip.innerHTML = `<strong>${escapeHtml(videosById.get(videoId)?.title || videoId)}</strong><br/>${escapeHtml(item.feature)} · SHAP: ${Number(item.value).toFixed(3)}<br/>${escapeHtml(`feature value: ${formatShapValue(item.feature_value)}`)}`;
+      globalTooltip.innerHTML = `<strong>${escapeHtml(videosById.get(videoId)?.title || videoId)}</strong><br/>${escapeHtml(localizeFeature(item.feature))} · SHAP: ${Number(item.value).toFixed(3)}<br/>${escapeHtml(`${currentLocale === "pl" ? "wartość cechy" : "feature value"}: ${formatShapValue(item.feature_value)}`)}`;
       globalTooltip.hidden = false;
       globalTooltip.style.display = "block";
     });
