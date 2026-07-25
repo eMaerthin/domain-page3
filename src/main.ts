@@ -99,6 +99,157 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character] || character);
 }
 
+function quantile(values: number[], fraction: number): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (!sorted.length) return 0;
+  const position = (sorted.length - 1) * fraction;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+}
+
+function outcomeChart(treatment: any, rows: any[], videosById: Map<string, any>, locale: Locale): string {
+  const t = text[locale];
+  const outcomeKey = "age_normalized_cumulative_view_rate_log";
+  const treated = rows.filter((row) => row[treatment.treatment] === true && typeof row[outcomeKey] === "number");
+  const control = rows.filter((row) => row[treatment.treatment] === false && typeof row[outcomeKey] === "number");
+  const all = [...treated, ...control].map((row) => row[outcomeKey]);
+  if (!all.length) return "";
+  const min = Math.min(...all);
+  const max = Math.max(...all);
+  const span = Math.max(max - min, 0.001);
+  const y = (value: number) => 184 - ((value - min) / span) * 140;
+  const box = (values: number[], x: number, color: string, label: string) => {
+    const q1 = quantile(values, .25);
+    const med = quantile(values, .5);
+    const q3 = quantile(values, .75);
+    const points = values.map((value, index) => `<circle cx="${x + ((index * 37) % 34) - 17}" cy="${y(value)}" r="3.5" fill="${color}" fill-opacity=".48"><title>${label}: ${value.toFixed(3)}</title></circle>`).join("");
+    return `${points}<line x1="${x}" y1="${y(Math.min(...values))}" x2="${x}" y2="${y(Math.max(...values))}" stroke="${color}" stroke-width="2"/><rect x="${x - 25}" y="${y(q3)}" width="50" height="${Math.max(2, y(q1) - y(q3))}" fill="${color}" fill-opacity=".18" stroke="${color}" stroke-width="2"/><line x1="${x - 25}" y1="${y(med)}" x2="${x + 25}" y2="${y(med)}" stroke="${color}" stroke-width="3"/><text x="${x}" y="210" text-anchor="middle" fill="#aab1ca">${label} (n=${values.length})</text>`;
+  };
+  const grid = [0, .25, .5, .75, 1].map((fraction) => {
+    const value = min + span * fraction;
+    return `<line x1="70" y1="${y(value)}" x2="720" y2="${y(value)}" stroke="#3b4569"/><text x="62" y="${y(value) + 4}" text-anchor="end" fill="#aab1ca" font-size="11">${value.toFixed(2)}</text>`;
+  }).join("");
+  const thumbs = (group: any[], label: string) => `<div><strong>${label}</strong><div class="thumb-strip">${group.slice(0, 5).map((row) => {
+    const video = videosById.get(row.video_id);
+    return video?.thumbnail_url ? `<a href="${escapeHtml(video.video_url)}" target="_blank" rel="noreferrer" title="${escapeHtml(video.title || "")}"><img src="${escapeHtml(video.thumbnail_url)}" alt="" loading="eager" /></a>` : "";
+  }).join("")}</div></div>`;
+  const interval = treatment.confidence_interval_95 || [];
+  const label = currentLocale === "pl" ? treatment.treatment_label || treatment.treatment : treatment.treatment_label_en || treatment.treatment_label || treatment.treatment;
+  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${Number(treatment.estimated_lift_percent || 0).toFixed(1)}% lift</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span><span class="causal-stat">${escapeHtml(treatment.treatment_definition || "")}</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, "Treated")}${thumbs(control, "Control")}</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated.map((row) => row[outcomeKey]), 240, "#5b5ce2", "Treated")}${box(control.map((row) => row[outcomeKey]), 520, "#e6814f", "Control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
+}
+
+function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any>): void {
+  const target = document.querySelector<HTMLElement>("#causalInteractive");
+  if (!target) return;
+  const treatments = causal.eligible_treatments || [];
+  if (!treatments.length) {
+    target.innerHTML = `<p>${text[currentLocale].noCausal}</p>`;
+    return;
+  }
+  target.innerHTML = treatments.map((treatment: any) => outcomeChart(treatment, rows, videosById, currentLocale)).join("");
+}
+
+function renderShapPanel(shap: any, videos: any[], videosById: Map<string, any>): void {
+  const target = document.querySelector<HTMLElement>("#shapInteractive");
+  if (!target) return;
+  if (!shap || shap.status !== "ok") {
+    target.innerHTML = `<div class="empty-state">${text[currentLocale].modelUnavailable}</div>`;
+    return;
+  }
+  const videoIds = Object.keys(shap.videos || {});
+  const selected = shap.videos[selectedVideoId] || shap.videos[videoIds[0]];
+  selectedVideoId ||= videoIds[0];
+  const selectedVideo = videosById.get(selectedVideoId);
+  const features = (selected?.shap_values || []).slice(0, 14);
+  const maxValue = Math.max(...features.map((item: any) => Math.abs(item.value)), .001);
+  const baseX = 430;
+  const waterfall = features.map((item: any, index: number) => {
+    const y = 24 + index * 30;
+    const width = Math.abs(item.value) / maxValue * 130;
+    const x = item.value >= 0 ? baseX : baseX - width;
+    const color = item.value >= 0 ? "#22d3ee" : "#fb4fbd";
+    return `<text x="8" y="${y + 12}" fill="#dbe2ff" font-size="11">${escapeHtml(item.feature)}</text><text x="190" y="${y + 12}" fill="#aab1ca" font-size="10">${escapeHtml(String(item.feature_value ?? "—"))}</text><rect x="${x}" y="${y}" width="${width}" height="16" rx="6" fill="${color}"><title>${escapeHtml(item.feature)}: ${item.value.toFixed(4)}</title></rect><text x="${item.value >= 0 ? x + width + 7 : x - 7}" y="${y + 12}" text-anchor="${item.value >= 0 ? "start" : "end"}" fill="#fff" font-size="11">${item.value >= 0 ? "+" : ""}${item.value.toFixed(3)}</text>`;
+  }).join("");
+  const global = (shap.global_importance || []).slice(0, 14);
+  const allValues = Object.values(shap.videos).flatMap((video: any) => video.shap_values || []);
+  const range = Math.max(...allValues.map((item: any) => Math.abs(item.value)), .001);
+  const rowsSvg = global.map((item: any, index: number) => {
+    const y = 25 + index * 25;
+    const dots = Object.entries(shap.videos).map(([videoId, video]: [string, any]) => {
+      const found = (video.shap_values || []).find((value: any) => value.feature === item.feature);
+      if (!found) return "";
+      const x = 430 + (found.value / range) * 260;
+      const title = videosById.get(videoId)?.title || videoId;
+      return `<circle class="shap-dot" data-video-id="${videoId}" cx="${x}" cy="${y + ((Math.abs(found.value * 997) % 11) - 5)}" r="3.5" fill="${found.value >= 0 ? "#22d3ee" : "#fb4fbd"}"><title>${escapeHtml(title)} — ${escapeHtml(item.feature)}: ${found.value.toFixed(4)}</title></circle>`;
+    }).join("");
+    return `<text x="8" y="${y + 4}" fill="#dbe2ff" font-size="11">${escapeHtml(item.feature)}</text>${dots}`;
+  }).join("");
+  const index = videoIds.indexOf(selectedVideoId);
+  target.innerHTML = `<div class="shap-layout"><div class="shap-global"><h3>Global SHAP pattern</h3><div class="shap-chart"><svg viewBox="0 0 760 ${global.length * 25 + 35}"><line x1="430" y1="8" x2="430" y2="${global.length * 25 + 15}" stroke="#8994b5" stroke-dasharray="3 3"/>${rowsSvg}</svg></div></div><div class="shap-detail"><div class="shap-video-preview"><a href="${escapeHtml(selectedVideo?.video_url || "#")}" target="_blank" rel="noreferrer">${selectedVideo?.thumbnail_url ? `<img src="${escapeHtml(selectedVideo.thumbnail_url)}" alt="" />` : ""}<span><strong>${escapeHtml(selectedVideo?.title || selectedVideoId)}</strong><small>${date(selectedVideo?.published_at)} · ${compact(selectedVideo?.views)} ${text[currentLocale].views}</small></span></a></div><p class="muted">Base: ${Number(shap.base_value).toFixed(3)} → Prediction: ${Number(selected.prediction).toFixed(3)} · ${index + 1} / ${videoIds.length}</p><div class="shap-chart"><svg viewBox="0 0 650 ${features.length * 30 + 35}"><line x1="${baseX}" y1="10" x2="${baseX}" y2="${features.length * 30 + 20}" stroke="#8994b5" stroke-dasharray="3 3"/>${waterfall}</svg></div><div class="shap-controls"><button data-shap="${videoIds[Math.max(0, index - 1)]}">← Previous</button><button data-shap="${videoIds[Math.min(videoIds.length - 1, index + 1)]}">Next →</button></div></div></div>`;
+  target.querySelectorAll<SVGCircleElement>(".shap-dot").forEach((dot) => dot.addEventListener("click", () => { selectedVideoId = dot.dataset.videoId || selectedVideoId; renderShapPanel(shap, videos, videosById); }));
+  target.querySelectorAll<HTMLButtonElement>("[data-shap]").forEach((button) => button.addEventListener("click", () => { selectedVideoId = button.dataset.shap || selectedVideoId; renderShapPanel(shap, videos, videosById); }));
+}
+
+function renderDistribution(points: any[]): void {
+  const canvas = document.querySelector<HTMLCanvasElement>("#distributionCanvas");
+  const chart = document.querySelector<HTMLElement>(".distribution-chart");
+  const tooltip = document.querySelector<HTMLElement>("#distributionTooltip");
+  const detail = document.querySelector<HTMLElement>("#distributionDetail");
+  if (!canvas || !chart || !tooltip || !detail) return;
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  const dated = points.filter((point) => point.published_at && point.perf_score != null);
+  const times = dated.map((point) => new Date(point.published_at).getTime());
+  const scores = dated.map((point) => Number(point.perf_score));
+  if (!dated.length) return;
+  const minTime = Math.min(...times), maxTime = Math.max(...times), minScore = Math.min(...scores), maxScore = Math.max(...scores);
+  const left = 58, right = 18, top = 18, bottom = 42, width = canvas.width - left - right, height = canvas.height - top - bottom;
+  const pointLayout: any[] = [];
+  const x = (time: number) => left + ((time - minTime) / Math.max(1, maxTime - minTime)) * width;
+  const y = (scoreValue: number) => top + height - ((scoreValue - minScore) / Math.max(.001, maxScore - minScore)) * height;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.strokeStyle = "#3b4569"; context.fillStyle = "#aab1ca"; context.font = "12px sans-serif";
+  for (let index = 0; index <= 4; index += 1) {
+    const gy = top + height * index / 4;
+    context.beginPath(); context.moveTo(left, gy); context.lineTo(left + width, gy); context.stroke();
+    context.fillText((maxScore - (maxScore - minScore) * index / 4).toFixed(2), 4, gy + 4);
+  }
+  context.textAlign = "center";
+  for (let index = 0; index < 6; index += 1) {
+    const fraction = index / 5;
+    context.fillText(new Date(minTime + (maxTime - minTime) * fraction).toLocaleDateString(currentLocale, { year: "numeric", month: "short" }), left + width * fraction, canvas.height - 14);
+  }
+  context.textAlign = "left";
+  for (const point of dated) {
+    const px = x(new Date(point.published_at).getTime()), py = y(Number(point.perf_score));
+    context.fillStyle = point.selected && point.tier === "top" ? "#22c55e" : point.selected && point.tier === "bottom" ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
+    context.beginPath(); context.arc(px, py, point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
+    pointLayout.push({ point, x: px, y: py });
+  }
+  const nearest = (event: MouseEvent) => {
+    const bounds = canvas.getBoundingClientRect(), scaleX = canvas.width / bounds.width, scaleY = canvas.height / bounds.height;
+    const px = (event.clientX - bounds.left) * scaleX, py = (event.clientY - bounds.top) * scaleY;
+    return pointLayout.reduce((best, item) => { const distance = Math.hypot(item.x - px, item.y - py); return !best || distance < best.distance ? { ...item, distance } : best; }, null as any);
+  };
+  canvas.onmousemove = (event) => {
+    const hit = nearest(event);
+    if (!hit || hit.distance > 12) { tooltip.hidden = true; return; }
+    tooltip.innerHTML = `<strong>${escapeHtml(hit.point.title || hit.point.video_id)}</strong><br/>${date(hit.point.published_at)} · ${Number(hit.point.perf_score).toFixed(3)} · ${hit.point.selected ? text[currentLocale].selected : "Observed"}`;
+    tooltip.hidden = false;
+    const chartBounds = chart.getBoundingClientRect(), canvasBounds = canvas.getBoundingClientRect();
+    tooltip.style.left = `${Math.max(8, Math.min(canvasBounds.left + hit.x * canvasBounds.width / canvas.width - chartBounds.left + 10, chart.clientWidth - tooltip.offsetWidth - 8))}px`;
+    tooltip.style.top = `${Math.max(8, Math.min(canvasBounds.top + hit.y * canvasBounds.height / canvas.height - chartBounds.top + 10, chart.clientHeight - tooltip.offsetHeight - 8))}px`;
+  };
+  canvas.onmouseleave = () => { tooltip.hidden = true; };
+  canvas.onclick = (event) => {
+    const hit = nearest(event);
+    if (!hit || hit.distance > 12) return;
+    detail.style.display = "block"; detail.classList.remove("muted");
+    detail.innerHTML = `<a href="${escapeHtml(hit.point.video_url || "#")}" target="_blank" rel="noreferrer">${hit.point.thumbnail_url ? `<img src="${escapeHtml(hit.point.thumbnail_url)}" alt="" />` : ""}<div><strong class="video-detail-title">${escapeHtml(hit.point.title || hit.point.video_id)}</strong><div class="video-detail-meta">${date(hit.point.published_at)} · ${format(hit.point.views)} ${text[currentLocale].views} · ${Number(hit.point.perf_score).toFixed(3)}</div></div></a>`;
+  };
+}
+
 function render(): void {
   const t = text[currentLocale];
   const demo: any = report();
@@ -107,7 +258,7 @@ function render(): void {
   const videos = dataset.videos;
   const groups = dataset.groups;
   const evidence = dataset.evidence;
-  const videosById = new Map(videos.map((video: any) => [video.video_id, video]));
+  const videosById = new Map<string, any>(videos.map((video: any) => [video.video_id, video]));
   const featuresById = new Map((dataset.feature_rows || []).map((row: any) => [row.video_id, row]));
   const resolveVideos = (items: any[] = []) => items.map((item) => {
     const video = typeof item === "string" ? videosById.get(item) : item;
@@ -168,7 +319,8 @@ function render(): void {
       </section>
       <section class="section chart-section">
         <div class="section-heading"><div><p class="eyebrow">03 / distribution</p><h2>${t.distribution}</h2><p class="section-description">${t.distributionHelp}</p></div></div>
-        <div class="distribution"><div class="axis-label">performance score</div>${distribution.slice(0, 140).map((point: any, index: number) => `<span class="dot ${point.selected ? point.tier === "top" ? "top-dot" : point.tier === "bottom" ? "bottom-dot" : "selected-dot" : ""}" style="left:${(index / Math.max(distribution.length - 1, 1)) * 100}%; bottom:${Math.min(90, Math.max(6, ((Number(point.perf_score) + 2) / 10) * 86))}%" title="${escapeHtml(point.title || "")}"></span>`).join("")}<div class="axis-line"></div></div>
+        <div class="distribution distribution-chart"><canvas id="distributionCanvas" width="1000" height="360"></canvas><div id="distributionTooltip" class="distribution-tooltip" hidden></div></div>
+        <div id="distributionDetail" class="video-detail-card muted">Click a point to inspect that video.</div>
       </section>
       <section class="section premium-section">
         <div class="section-heading"><div><p class="eyebrow">04 / model</p><h2>${t.predictive}</h2></div><span class="premium-tag">DEMO UNLOCKED</span></div>
@@ -176,15 +328,18 @@ function render(): void {
       </section>
       <section class="section premium-section">
         <div class="section-heading"><div><p class="eyebrow">05 / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
-        ${shap.status === "ok" ? `<div class="shap-layout"><div class="shap-global"><h3>Global pattern</h3>${(shap.global_importance || []).slice(0, 8).map((item: any) => `<div class="bar-row"><span>${escapeHtml(item.feature)}</span><i><b style="width:${Math.min(100, Number(item.mean_abs_shap) * 100)}%"></b></i><em>${Number(item.mean_abs_shap).toFixed(2)}</em></div>`).join("")}</div><div class="shap-detail"><div class="shap-detail-heading"><div><h3>${escapeHtml(selectedVideo?.title || "Video explanation")}</h3><p>${date(selectedVideo?.published_at)} · ${compact(selectedVideo?.views)} ${t.views}</p></div><span>${shapIndex + 1} / ${shapVideos.length}</span></div>${(selected?.shap_values || []).slice(0, 8).map((item: any) => `<div class="bar-row"><span>${escapeHtml(item.feature)}</span><i><b class="${Number(item.value) < 0 ? "negative" : ""}" style="width:${Math.min(100, Math.abs(Number(item.value)) * 42)}%"></b></i><em>${Number(item.value).toFixed(2)}</em></div>`).join("")}<div class="shap-controls"><button data-shap="${previousShapId || ""}">← Previous</button><button data-shap="${nextShapId || ""}">Next →</button></div><div class="shap-controls shap-index">${shapVideos.map(([id], index) => `<button class="${id === selectedVideoId ? "active" : ""}" data-video="${id}">${index + 1}</button>`).join("")}</div></div></div>` : `<div class="empty-state">${t.modelUnavailable}</div>`}
+        <div id="shapInteractive"></div>
       </section>
       <section class="section causal-section">
         <div class="section-heading"><div><p class="eyebrow">06 / caution</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
-        <div class="causal-copy">${selectedTreatment ? `<div class="causal-tabs">${eligibleTreatments.map((item: any) => `<button class="${item.treatment === selectedTreatment.treatment ? "active" : ""}" data-treatment="${item.treatment}">${escapeHtml(currentLocale === "pl" ? item.treatment_label || item.treatment : item.treatment_label_en || item.treatment_label || item.treatment)}</button>`).join("")}</div><div class="causal-detail"><div><p class="eyebrow">${escapeHtml(currentLocale === "pl" ? selectedTreatment.treatment_label || selectedTreatment.treatment : selectedTreatment.treatment_label_en || selectedTreatment.treatment_label || selectedTreatment.treatment)}</p><h3>${Number(selectedTreatment.estimated_lift_percent || 0).toFixed(0)}% estimated lift</h3><p>${escapeHtml(selectedTreatment.treatment_definition || "")}</p></div><div class="effect-meter"><span style="width:${Math.min(100, Math.max(4, Number(selectedTreatment.estimated_lift_percent || 0) / 8))}%"></span></div><div class="causal-stats"><span>${selectedTreatment.treated_rows} treated</span><span>${selectedTreatment.control_rows} control</span><span>95% CI: ${selectedTreatment.confidence_interval_95?.map((value: number) => value.toFixed(2)).join(" to ")}</span></div><p class="warning">${escapeHtml(selectedTreatment.warning || causal.global_disclaimer || "")}</p></div>` : `<p>${t.noCausal}</p>`}</div>
+        <div id="causalInteractive" class="causal-copy"></div>
       </section>
     </main>
     <footer><span>SNAPIK / find the peak</span><span>${t.demo} · ${profile.display_name}</span></footer>`;
 
+  renderShapPanel(shap, videos, videosById);
+  renderCausalPanel(causal, dataset.feature_rows || [], videosById);
+  renderDistribution(distribution);
   $("#language").addEventListener("click", () => { currentLocale = currentLocale === "pl" ? "en" : "pl"; void loadDemo(); });
   $("#print").addEventListener("click", () => window.print());
   document.querySelectorAll<HTMLButtonElement>("[data-video]").forEach((button) => button.addEventListener("click", () => { selectedVideoId = button.dataset.video || ""; render(); }));
