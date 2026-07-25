@@ -50,6 +50,14 @@ const text = {
     selected: "Selected for analysis",
     noCausal: "No treatment met the sample and overlap conditions. No unreliable causal claim is shown.",
     modelUnavailable: "The cached demo has no reliable SHAP model for this snapshot.",
+    quickLinks: "Quick links",
+    reportLink: "Overview",
+    distributionLink: "Distribution",
+    shapLink: "SHAP",
+    causalLink: "Causal",
+    comingSoonTitle: "More creator intelligence is coming soon.",
+    comingSoonText: "SNAPIK is preparing additional creator reports and tools. Waiting-list registration will open soon.",
+    waitingListSoon: "Subscribe to join the waiting list",
   },
   pl: {
     eyebrow: "Inteligencja twórców / demo z cache",
@@ -92,6 +100,14 @@ const text = {
     selected: "Wybrane do analizy",
     noCausal: "Żaden wariant nie spełnił warunków liczebności i nakładania grup. Nie pokazujemy niewiarygodnego wniosku przyczynowego.",
     modelUnavailable: "W tym zrzucie demo nie ma wiarygodnego modelu SHAP.",
+    quickLinks: "Szybkie przejście",
+    reportLink: "Przegląd",
+    distributionLink: "Rozkład",
+    shapLink: "SHAP",
+    causalLink: "Przyczynowość",
+    comingSoonTitle: "Więcej analiz twórców już wkrótce.",
+    comingSoonText: "SNAPIK przygotowuje kolejne raporty i narzędzia dla twórców. Zapisy na listę oczekujących zostaną otwarte wkrótce.",
+    waitingListSoon: "Zapisz się na listę oczekujących",
   },
 } as const;
 
@@ -424,10 +440,11 @@ function render(): void {
   $("#app").innerHTML = `
     <header class="site-header">
       <a class="brand" href="#"><img class="brand-icon" src="./assets/snapik-icon.png" alt="" /><span>SNAPIK</span></a>
+      <nav class="quick-links" aria-label="${t.quickLinks}"><span>${t.quickLinks}</span><a href="#report">${t.reportLink}</a><a href="#distribution">${t.distributionLink}</a><a href="#shapInteractive">${t.shapLink}</a><a href="#causalInteractive">${t.causalLink}</a></nav>
       <div class="header-actions"><span class="static-pill">STATIC DEMO</span><button id="language" class="language-button">${t.language}</button></div>
     </header>
     <main>
-      <img class="hero-banner" src="./assets/snapik-header.png" alt="SNAPIK creator intelligence" />
+      <a class="hero-banner-link" href="#comingSoon" aria-label="${t.waitingListSoon}"><img class="hero-banner" src="./assets/snapik-header-${currentLocale}.webp" alt="SNAPIK creator intelligence" /></a>
       <section class="hero">
         <div class="hero-copy">
           <p class="eyebrow">${t.eyebrow}</p>
@@ -453,7 +470,7 @@ function render(): void {
         <div class="section-heading subsection"><div><p class="eyebrow">02b / contrast</p><h2>${t.bottom}</h2></div></div>
         <div class="video-grid">${bottom.map((video: any, index: number) => card(video, index + 1)).join("")}</div>
       </section>
-      <section class="section chart-section">
+      <section id="distribution" class="section chart-section">
         <div class="section-heading"><div><p class="eyebrow">03 / distribution</p><h2>${t.distribution}</h2><p class="section-description">${t.distributionHelp}</p></div></div>
         <div class="distribution-legend"><span><i class="legend-dot top"></i>${currentLocale === "pl" ? "Najlepsze 10%" : "Top 10%"}</span><span><i class="legend-dot weak"></i>${currentLocale === "pl" ? "Najsłabsze 10%" : "Weakest 10%"}</span><span><i class="legend-dot other"></i>${currentLocale === "pl" ? "Pozostałe wybrane" : "Other selected"}</span><span><i class="legend-dot observed"></i>${currentLocale === "pl" ? "Nie wybrane" : "Not selected"}</span></div><div class="distribution distribution-chart"><canvas id="distributionCanvas" width="1000" height="360"></canvas><div id="distributionTooltip" class="distribution-tooltip" hidden></div></div>
         <div id="distributionDetail" class="video-detail-card muted">Click a point to inspect that video.</div>
@@ -478,6 +495,7 @@ function render(): void {
         <div id="causalInteractive" class="causal-copy"></div>
       </section>
     </main>
+    <section id="comingSoon" class="coming-soon"><div><p class="eyebrow">${t.waitingListSoon}</p><h2>${t.comingSoonTitle}</h2><p>${t.comingSoonText}</p></div><span class="coming-soon-badge">SNAPIK / SOON</span></section>
     <footer><span>SNAPIK / find the peak</span><span>${t.demo} · ${profile.display_name}</span></footer>`;
 
   renderShapPanel(shap, videos, videosById);
