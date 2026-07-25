@@ -236,10 +236,14 @@ function renderDistribution(points: any[]): void {
     context.fillText(new Date(minTime + (maxTime - minTime) * fraction).toLocaleDateString(currentLocale, { year: "numeric", month: "short" }), left + width * fraction, canvas.height - 14);
   }
   context.textAlign = "left";
-  for (const point of dated) {
+  const drawOrder = [...dated].sort((a, b) => {
+    const priority = (point: any) => point.selected && topIds.has(point.video_id) ? 3 : point.selected && weakIds.has(point.video_id) ? 2 : point.selected ? 1 : 0;
+    return priority(a) - priority(b);
+  });
+  for (const point of drawOrder) {
     const px = x(new Date(point.published_at).getTime()), py = y(Number(point.perf_score));
     context.fillStyle = point.selected && topIds.has(point.video_id) ? "#22c55e" : point.selected && weakIds.has(point.video_id) ? "#a855f7" : point.selected ? "#f59e0b" : "#77809a";
-    context.beginPath(); context.arc(px, py, point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
+    context.beginPath(); context.arc(px, py, point.selected && (topIds.has(point.video_id) || weakIds.has(point.video_id)) ? 5.5 : point.selected ? 4 : 2.2, 0, Math.PI * 2); context.fill();
     pointLayout.push({ point, x: px, y: py });
   }
   const nearest = (event: MouseEvent) => {
