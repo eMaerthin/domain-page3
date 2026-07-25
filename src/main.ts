@@ -126,6 +126,7 @@ function render(): void {
       <div class="header-actions"><span class="static-pill">STATIC DEMO</span><button id="language" class="language-button">${t.language}</button></div>
     </header>
     <main>
+      <img class="hero-banner" src="./assets/snapik-header.png" alt="SNAPIK creator intelligence" />
       <section class="hero">
         <div class="hero-copy">
           <p class="eyebrow">${t.eyebrow}</p>
