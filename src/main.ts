@@ -136,7 +136,19 @@ function outcomeChart(treatment: any, rows: any[], videosById: Map<string, any>,
   }).join("")}</div></div>`;
   const interval = treatment.confidence_interval_95 || [];
   const label = currentLocale === "pl" ? treatment.treatment_label || treatment.treatment : treatment.treatment_label_en || treatment.treatment_label || treatment.treatment;
-  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${Number(treatment.estimated_lift_percent || 0).toFixed(1)}% lift</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span><span class="causal-stat">${escapeHtml(treatment.treatment_definition || "")}</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, "Treated")}${thumbs(control, "Control")}</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated.map((row) => row[outcomeKey]), 240, "#5b5ce2", "Treated")}${box(control.map((row) => row[outcomeKey]), 520, "#e6814f", "Control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
+  const definitions: Record<string, string> = currentLocale === "pl" ? {
+    duration_short: "filmy trwające nie dłużej niż 60 sekund",
+    duration_long: "filmy trwające dłużej niż 180 sekund",
+    has_call_to_action: "opis zawiera wezwanie do działania",
+    has_giveaway_language: "tytuł lub opis zawiera język konkursu albo nagrody",
+    title_number: "tytuł zawiera cyfrę",
+    title_question: "tytuł zawiera znak zapytania",
+    title_exclamation: "tytuł zawiera wykrzyknik",
+    has_collaboration_language: "tytuł lub opis zawiera język współpracy",
+  } : {};
+  const definition = definitions[treatment.treatment] || treatment.treatment_definition || treatment.treatment_label || treatment.treatment;
+  const lift = Number(treatment.estimated_lift_percent || 0);
+  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${lift.toFixed(1)}% LIFT</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-highlight"><div><span class="causal-highlight-label">${currentLocale === "pl" ? "WYSZCZEGÓLNIENIE TREATMENTU" : "TREATMENT DEFINITION"}</span><strong>${escapeHtml(label)}</strong><p>${currentLocale === "pl" ? "To oznacza: " : "This means: "}${escapeHtml(definition)}.</p></div><div class="causal-lift"><span>LIFT</span><strong>${lift >= 0 ? "+" : ""}${lift.toFixed(1)}%</strong><small>${currentLocale === "pl" ? "zaobserwowana różnica" : "observed difference"}</small></div></div><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, currentLocale === "pl" ? "Grupa treatmentu" : "Treated")}${thumbs(control, currentLocale === "pl" ? "Grupa kontrolna" : "Control")}</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated.map((row) => row[outcomeKey]), 240, "#5b5ce2", currentLocale === "pl" ? "Treatment" : "Treated")}${box(control.map((row) => row[outcomeKey]), 520, "#e6814f", currentLocale === "pl" ? "Kontrola" : "Control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
 }
 
 function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any>): void {
