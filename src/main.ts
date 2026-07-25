@@ -387,6 +387,8 @@ function render(): void {
   const distribution = evidence.distribution_points || [];
   const featureDifferences = insights.filter((item: any) => item.triggered !== false).sort((a: any, b: any) => Number(b.importance || 0) - Number(a.importance || 0)).slice(0, 10);
   const strongPairs = (evidence.insights?.pairs || []).filter((item: any) => Number(item.importance || 0) >= .5).sort((a: any, b: any) => Number(b.importance || 0) - Number(a.importance || 0)).slice(0, 8);
+  const shapSectionNumber = strongPairs.length ? "05" : "04";
+  const causalSectionNumber = strongPairs.length ? "06" : "05";
   const eligibleTreatments = causal.eligible_treatments || [];
   if (!selectedTreatmentId && eligibleTreatments.length) selectedTreatmentId = eligibleTreatments[0].treatment;
   const selectedTreatment = eligibleTreatments.find((item: any) => item.treatment === selectedTreatmentId) || eligibleTreatments[0];
@@ -443,11 +445,11 @@ function render(): void {
       </section>
       ${strongPairs.length ? `<section class="section feature-diff-section"><div class="section-heading"><div><p class="eyebrow">04 / combinations</p><h2>${t.pairDiff}</h2><p class="section-description">${t.pairDiffHelp}</p></div></div><div class="feature-diff-list">${strongPairs.map((item: any) => `<article class="feature-diff-row"><div class="feature-diff-label"><strong>${escapeHtml(currentLocale === "pl" ? item.label || item.label_en || item.key : item.label_en || item.label || item.key)}</strong><span>pair importance ${Number(item.importance).toFixed(2)}</span></div><div class="feature-diff-values"><div class="feature-diff-group"><span>${t.topGroup}</span><i><b class="top-bar" style="width:${Math.min(100, Number(item.top_value || 0) * 100)}%"></b></i><em>${escapeHtml(item.top_display || "—")}</em></div><div class="feature-diff-group"><span>${t.worstGroup}</span><i><b class="worst-bar" style="width:${Math.min(100, Number(item.bottom_value || 0) * 100)}%"></b></i><em>${escapeHtml(item.bottom_display || "—")}</em></div></div></article>`).join("")}</div></section>` : ""}
       <section class="section premium-section">
-        <div class="section-heading"><div><p class="eyebrow">05 / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
+        <div class="section-heading"><div><p class="eyebrow">${shapSectionNumber} / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
         <div id="shapInteractive"></div>
       </section>
       <section class="section causal-section">
-        <div class="section-heading"><div><p class="eyebrow">06 / caution</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
+        <div class="section-heading"><div><p class="eyebrow">${causalSectionNumber} / caution</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
         <div class="causal-guide"><strong>${currentLocale === "pl" ? "Jak czytać wykresy" : "How to read the plots"}</strong><p>${t.causalGuide}</p></div>
         <div id="causalInteractive" class="causal-copy"></div>
       </section>
