@@ -24,6 +24,10 @@ const text = {
     pattern: "What stands out",
     distribution: "Performance distribution",
     distributionHelp: "Every dot is a video. Violet marks the strongest tail, green the selected sample, and gray the rest of the observed catalog.",
+    featureDiff: "What separates Top from Worst",
+    featureDiffHelp: "Exploratory differences between the top and bottom performance groups. These are associations, not causal claims.",
+    topGroup: "Top",
+    worstGroup: "Worst",
     predictive: "Predictive model",
     shap: "Explainable AI (SHAP)",
     shapHelp: "SHAP shows which observable features move a model prediction up or down. It describes the model, not causality.",
@@ -55,6 +59,10 @@ const text = {
     pattern: "Najważniejsze wzorce",
     distribution: "Rozkład wyników",
     distributionHelp: "Każda kropka to film. Fiolet oznacza najmocniejszy ogon, zieleń wybraną próbę, a szarość resztę katalogu.",
+    featureDiff: "Cechy różniące Top od Worst",
+    featureDiffHelp: "Eksploracyjne różnice między grupami najlepszych i najsłabszych filmów. To zależności, a nie twierdzenia przyczynowe.",
+    topGroup: "Top",
+    worstGroup: "Worst",
     predictive: "Model predykcyjny",
     shap: "Wyjaśnialne AI (SHAP)",
     shapHelp: "SHAP pokazuje, które obserwowalne cechy podnoszą lub obniżają predykcję modelu. Nie opisuje przyczynowości.",
@@ -375,6 +383,7 @@ function render(): void {
   const selectedVideo = videos.find((video: any) => video.video_id === selectedVideoId);
   const causal = evidence.causal_model || {};
   const distribution = evidence.distribution_points || [];
+  const featureDifferences = insights.filter((item: any) => item.triggered !== false).sort((a: any, b: any) => Number(b.importance || 0) - Number(a.importance || 0)).slice(0, 10);
   const eligibleTreatments = causal.eligible_treatments || [];
   if (!selectedTreatmentId && eligibleTreatments.length) selectedTreatmentId = eligibleTreatments[0].treatment;
   const selectedTreatment = eligibleTreatments.find((item: any) => item.treatment === selectedTreatmentId) || eligibleTreatments[0];
@@ -419,6 +428,15 @@ function render(): void {
         <div class="section-heading"><div><p class="eyebrow">03 / distribution</p><h2>${t.distribution}</h2><p class="section-description">${t.distributionHelp}</p></div></div>
         <div class="distribution-legend"><span><i class="legend-dot top"></i>${currentLocale === "pl" ? "Najlepsze 10%" : "Top 10%"}</span><span><i class="legend-dot weak"></i>${currentLocale === "pl" ? "Najsłabsze 10%" : "Weakest 10%"}</span><span><i class="legend-dot other"></i>${currentLocale === "pl" ? "Pozostałe wybrane" : "Other selected"}</span><span><i class="legend-dot observed"></i>${currentLocale === "pl" ? "Nie wybrane" : "Not selected"}</span></div><div class="distribution distribution-chart"><canvas id="distributionCanvas" width="1000" height="360"></canvas><div id="distributionTooltip" class="distribution-tooltip" hidden></div></div>
         <div id="distributionDetail" class="video-detail-card muted">Click a point to inspect that video.</div>
+      </section>
+      <section class="section feature-diff-section">
+        <div class="section-heading"><div><p class="eyebrow">03b / contrast</p><h2>${t.featureDiff}</h2><p class="section-description">${t.featureDiffHelp}</p></div></div>
+        <div class="feature-diff-list">${featureDifferences.map((item: any) => {
+          const topValue = Number(item.top_value || 0);
+          const worstValue = Number(item.bottom_value || 0);
+          const maxValue = Math.max(Math.abs(topValue), Math.abs(worstValue), .001);
+          return `<article class="feature-diff-row"><div class="feature-diff-label"><strong>${escapeHtml(currentLocale === "pl" ? item.label || item.label_en || item.key : item.label_en || item.label || item.key)}</strong><span>${escapeHtml(item.kind === "numeric" ? "mean" : "share")}</span></div><div class="feature-diff-values"><div class="feature-diff-group"><span>${t.topGroup}</span><i><b class="top-bar" style="width:${Math.abs(topValue) / maxValue * 100}%"></b></i><em>${escapeHtml(item.top_display || topValue.toFixed(2))}</em></div><div class="feature-diff-group"><span>${t.worstGroup}</span><i><b class="worst-bar" style="width:${Math.abs(worstValue) / maxValue * 100}%"></b></i><em>${escapeHtml(item.bottom_display || worstValue.toFixed(2))}</em></div></div></article>`;
+        }).join("")}</div>
       </section>
       <section class="section premium-section">
         <div class="section-heading"><div><p class="eyebrow">04 / model</p><h2>${t.predictive}</h2></div><span class="premium-tag">DEMO UNLOCKED</span></div>
