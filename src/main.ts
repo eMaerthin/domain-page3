@@ -161,7 +161,7 @@ function outcomeChart(treatment: any, rows: any[], videosById: Map<string, any>,
   } : {};
   const definition = definitions[treatment.treatment] || treatment.treatment_definition || treatment.treatment_label || treatment.treatment;
   const lift = Number(treatment.estimated_lift_percent || 0);
-  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${lift.toFixed(1)}% LIFT</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-highlight"><div><span class="causal-highlight-label">${currentLocale === "pl" ? "WYSZCZEGÓLNIENIE TREATMENTU" : "TREATMENT DEFINITION"}</span><strong>${escapeHtml(label)}</strong><p>${currentLocale === "pl" ? "To oznacza: " : "This means: "}${escapeHtml(definition)}.</p></div><div class="causal-lift ${lift < 0 ? "negative" : "positive"}"><span>LIFT</span><strong>${lift >= 0 ? "+" : ""}${lift.toFixed(1)}%</strong><small>${currentLocale === "pl" ? "zaobserwowana różnica" : "observed difference"}</small></div></div><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, currentLocale === "pl" ? "Grupa treatmentu" : "Treated")}${thumbs(control, currentLocale === "pl" ? "Grupa kontrolna" : "Control")}</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated, 240, "#5b5ce2", currentLocale === "pl" ? "Treatment" : "Treated")}${box(control, 520, "#e6814f", currentLocale === "pl" ? "Kontrola" : "Control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
+  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${lift.toFixed(1)}% LIFT</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-highlight"><div><span class="causal-highlight-label">${currentLocale === "pl" ? "WYSZCZEGÓLNIENIE TREATMENTU" : "TREATMENT DEFINITION"}</span><strong>${escapeHtml(label)}</strong><p>${currentLocale === "pl" ? "To oznacza: " : "This means: "}${escapeHtml(definition)}.</p></div><div class="causal-lift ${lift < 0 ? "negative" : "positive"}"><span>LIFT</span><strong>${lift >= 0 ? "+" : ""}${lift.toFixed(1)}%</strong><small>${currentLocale === "pl" ? "zaobserwowana różnica" : "observed difference"}</small></div></div><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, currentLocale === "pl" ? "Grupa treatmentu" : "Treated")}${thumbs(control, currentLocale === "pl" ? "Grupa kontrolna" : "Control")}</div><div class="causal-video-detail muted">Click a point to inspect that video.</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated, 240, "#5b5ce2", currentLocale === "pl" ? "Treatment" : "Treated")}${box(control, 520, "#e6814f", currentLocale === "pl" ? "Kontrola" : "Control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
 }
 
 function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any>): void {
@@ -172,9 +172,8 @@ function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any
     target.innerHTML = `<p>${text[currentLocale].noCausal}</p>`;
     return;
   }
-  target.innerHTML = `${treatments.map((treatment: any) => outcomeChart(treatment, rows, videosById, currentLocale)).join("")}<div id="causalTooltip" class="distribution-tooltip causal-tooltip" hidden></div><div id="causalVideoDetail" class="video-detail-card muted">Hover a point for details; click it to inspect the video.</div>`;
+  target.innerHTML = `${treatments.map((treatment: any) => outcomeChart(treatment, rows, videosById, currentLocale)).join("")}<div id="causalTooltip" class="distribution-tooltip causal-tooltip" hidden></div>`;
   const tooltip = target.querySelector<HTMLElement>("#causalTooltip");
-  const detail = target.querySelector<HTMLElement>("#causalVideoDetail");
   target.querySelectorAll<SVGCircleElement>(".causal-dot").forEach((dot) => {
     const video = videosById.get(dot.dataset.videoId || "");
     dot.addEventListener("pointerenter", () => {
@@ -191,6 +190,7 @@ function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any
     });
     dot.addEventListener("pointerleave", () => { if (tooltip) { tooltip.hidden = true; tooltip.style.display = "none"; } });
     dot.addEventListener("click", () => {
+      const detail = dot.closest("details")?.querySelector<HTMLElement>(".causal-video-detail");
       if (!detail || !video) return;
       detail.style.display = "block";
       detail.classList.remove("muted");
