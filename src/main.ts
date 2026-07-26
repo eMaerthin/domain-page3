@@ -51,6 +51,14 @@ const text = {
     noCausal: "No treatment met the sample and overlap conditions. No unreliable causal claim is shown.",
     modelUnavailable: "The cached demo has no reliable SHAP model for this snapshot.",
     quickLinks: "Quick links",
+    joinShort: "Join waiting list",
+    howToTitle: "How to use this demo",
+    howToText: "Start with the Executive summary, compare Top performers with Needs attention, then use Explain and Causal exploration for deeper analysis.",
+    interactionHint: "Hover a point for details. Click a point to open the video preview.",
+    mobileInteractionHint: "Tap a point to inspect the video.",
+    pointDetail: "Click a point to inspect that video.",
+    showAll: "Show all",
+    hideAll: "Hide all",
     executiveSummary: "Executive summary",
     reportLink: "Overview",
     distributionLink: "Distribution",
@@ -108,6 +116,14 @@ const text = {
     noCausal: "Żaden wariant nie spełnił warunków liczebności i nakładania grup. Nie pokazujemy niewiarygodnego wniosku przyczynowego.",
     modelUnavailable: "W tym zrzucie demo nie ma wiarygodnego modelu SHAP.",
     quickLinks: "Szybkie przejście",
+    joinShort: "Lista oczekujących",
+    howToTitle: "Jak korzystać z tego demo",
+    howToText: "Zacznij od podsumowania, porównaj najlepsze i najsłabsze filmy, a następnie przejdź do sekcji Explain i Causal, aby zobaczyć głębszą analizę.",
+    interactionHint: "Najedź na punkt, aby zobaczyć szczegóły. Kliknij punkt, aby otworzyć podgląd filmu.",
+    mobileInteractionHint: "Dotknij punktu, aby zobaczyć film.",
+    pointDetail: "Kliknij punkt, aby zobaczyć podgląd filmu.",
+    showAll: "Pokaż wszystkie",
+    hideAll: "Ukryj wszystkie",
     executiveSummary: "Podsumowanie",
     reportLink: "Przegląd",
     distributionLink: "Rozkład",
@@ -213,7 +229,7 @@ function outcomeChart(treatment: any, rows: any[], videosById: Map<string, any>,
   } : {};
   const definition = definitions[treatment.treatment] || treatment.treatment_definition || treatment.treatment_label || treatment.treatment;
   const lift = Number(treatment.estimated_lift_percent || 0);
-  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${lift.toFixed(1)}% LIFT</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-highlight"><div><span class="causal-highlight-label">${currentLocale === "pl" ? "WYSZCZEGÓLNIENIE TREATMENTU" : "TREATMENT DEFINITION"}</span><strong>${escapeHtml(label)}</strong><p>${currentLocale === "pl" ? "To oznacza: " : "This means: "}${escapeHtml(definition)}.</p></div><div class="causal-lift ${lift < 0 ? "negative" : "positive"}"><span>LIFT</span><strong>${lift >= 0 ? "+" : ""}${lift.toFixed(1)}%</strong><small>${currentLocale === "pl" ? "zaobserwowana różnica" : "observed difference"}</small></div></div><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, currentLocale === "pl" ? "Grupa treatmentu" : "Treated")}${thumbs(control, currentLocale === "pl" ? "Grupa kontrolna" : "Control")}</div><div class="causal-video-detail muted">Click a point to inspect that video.</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated, 240, "#5b5ce2", currentLocale === "pl" ? "Treatment" : "Treated", "treated")}${box(control, 520, "#e6814f", currentLocale === "pl" ? "Kontrola" : "Control", "control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
+  return `<details class="causal-explorer"><summary class="causal-summary"><span class="causal-summary-title">${escapeHtml(label)}</span><span class="causal-summary-stat">${lift.toFixed(1)}% LIFT</span><span class="causal-summary-stat">${treatment.treated_rows} treated</span><span class="causal-summary-stat">${treatment.control_rows} control</span></summary><div class="causal-highlight"><div><span class="causal-highlight-label">${currentLocale === "pl" ? "WYSZCZEGÓLNIENIE TREATMENTU" : "TREATMENT DEFINITION"}</span><strong>${escapeHtml(label)}</strong><p>${currentLocale === "pl" ? "To oznacza: " : "This means: "}${escapeHtml(definition)}.</p></div><div class="causal-lift ${lift < 0 ? "negative" : "positive"}"><span>LIFT</span><strong>${lift >= 0 ? "+" : ""}${lift.toFixed(1)}%</strong><small>${currentLocale === "pl" ? "zaobserwowana różnica" : "observed difference"}</small></div></div><div class="causal-stats"><span class="causal-stat">95%: [${Number(interval[0]).toFixed(3)}, ${Number(interval[1]).toFixed(3)}]</span></div><p class="causal-explanation">${escapeHtml(treatment.warning || "")}</p><div class="causal-thumbs">${thumbs(treated, currentLocale === "pl" ? "Grupa treatmentu" : "Treated")}${thumbs(control, currentLocale === "pl" ? "Grupa kontrolna" : "Control")}</div><div class="causal-video-detail muted">${text[currentLocale].pointDetail}</div><svg viewBox="0 0 760 225" role="img" aria-label="Outcome distribution">${grid}<line x1="70" y1="184" x2="720" y2="184" stroke="#9aa5b8"/>${box(treated, 240, "#5b5ce2", currentLocale === "pl" ? "Treatment" : "Treated", "treated")}${box(control, 520, "#e6814f", currentLocale === "pl" ? "Kontrola" : "Control", "control")}<text x="12" y="18" fill="#dbe2ff" font-size="11">log age-normalized view rate</text></svg></details>`;
 }
 
 function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any>): void {
@@ -224,7 +240,24 @@ function renderCausalPanel(causal: any, rows: any[], videosById: Map<string, any
     target.innerHTML = `<p>${text[currentLocale].noCausal}</p>`;
     return;
   }
-  target.innerHTML = `${treatments.map((treatment: any) => outcomeChart(treatment, rows, videosById, currentLocale)).join("")}<div id="causalTooltip" class="distribution-tooltip causal-tooltip" hidden></div>`;
+  target.innerHTML = `<div class="causal-bulk-controls"><button type="button" data-causal-action="previous">← ${text[currentLocale].previous}</button><button type="button" data-causal-action="next">${text[currentLocale].next} →</button><button type="button" data-causal-action="show">${text[currentLocale].showAll}</button><button type="button" data-causal-action="hide">${text[currentLocale].hideAll}</button></div>${treatments.map((treatment: any) => outcomeChart(treatment, rows, videosById, currentLocale)).join("")}<div id="causalTooltip" class="distribution-tooltip causal-tooltip" hidden></div>`;
+  const explorers = [...target.querySelectorAll<HTMLDetailsElement>(".causal-explorer")];
+  explorers[0]?.setAttribute("open", "");
+  const openExplorer = (index: number) => {
+    const targetIndex = (index + explorers.length) % explorers.length;
+    explorers.forEach((explorer, explorerIndex) => { explorer.open = explorerIndex === targetIndex; });
+    explorers[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  target.querySelector<HTMLButtonElement>("[data-causal-action=previous]")?.addEventListener("click", () => {
+    const current = explorers.findIndex((explorer) => explorer.open);
+    openExplorer((current < 0 ? 0 : current) - 1);
+  });
+  target.querySelector<HTMLButtonElement>("[data-causal-action=next]")?.addEventListener("click", () => {
+    const current = explorers.findIndex((explorer) => explorer.open);
+    openExplorer((current < 0 ? 0 : current) + 1);
+  });
+  target.querySelector<HTMLButtonElement>("[data-causal-action=show]")?.addEventListener("click", () => explorers.forEach((explorer) => { explorer.open = true; }));
+  target.querySelector<HTMLButtonElement>("[data-causal-action=hide]")?.addEventListener("click", () => explorers.forEach((explorer) => { explorer.open = false; }));
   const tooltip = target.querySelector<HTMLElement>("#causalTooltip");
   target.querySelectorAll<SVGCircleElement>(".causal-dot").forEach((dot) => {
     const video = videosById.get(dot.dataset.videoId || "");
@@ -452,8 +485,8 @@ function render(): void {
   $("#app").innerHTML = `
     <header class="site-header">
       <a class="brand" href="#"><img class="brand-icon" src="./assets/snapik-icon.png" alt="" /><span>SNAPIK</span></a>
-      <nav class="quick-links" aria-label="${t.quickLinks}"><span>${t.quickLinks}</span><a href="#report">${t.reportLink}</a><a href="#distribution">${t.distributionLink}</a><a href="#shapInteractive">${t.shapLink}</a><a href="#causalInteractive">${t.causalLink}</a></nav>
-      <div class="header-actions"><span class="static-pill">STATIC DEMO</span><button id="language" class="language-button">${t.language}</button></div>
+      <nav class="quick-links" aria-label="${t.quickLinks}"><span>${t.quickLinks}</span><a href="#report"><b aria-hidden="true">▦</b>${t.reportLink}</a><a href="#distribution"><b aria-hidden="true">•</b>${t.distributionLink}</a><a href="#portfolio"><b aria-hidden="true">▶</b>${t.top}</a><a href="#contrast"><b aria-hidden="true">↔</b>${t.featureDiff}</a><a href="#shapInteractive"><b aria-hidden="true">✦</b>${t.shapLink}</a><a href="#causalInteractive"><b aria-hidden="true">∿</b>${t.causalLink}</a></nav>
+      <div class="header-actions"><a class="header-waitlist" href="#comingSoon">${t.joinShort}</a><span class="static-pill">STATIC DEMO</span><button id="language" class="language-button">${t.language}</button></div>
     </header>
     <main>
       <a class="hero-banner-link" href="#comingSoon" aria-label="${t.waitingListSoon}"><img class="hero-banner" src="./assets/snapik-header-${currentLocale}.webp" alt="SNAPIK creator intelligence" /></a>
@@ -466,6 +499,7 @@ function render(): void {
         </div>
         <div class="hero-orbit"><div class="orbit-ring"></div><div class="orbit-core"><span>PEAK</span><strong>MrBeast</strong></div><i></i><i></i><i></i></div>
       </section>
+      <section class="how-to"><div><p class="eyebrow">START HERE</p><h2>${t.howToTitle}</h2></div><p>${t.howToText}</p></section>
       <section id="report" class="section executive-summary">
         <div class="section-heading"><div><p class="eyebrow">01 / executive summary</p><h2>${t.executiveSummary}</h2></div><span class="section-note">${profile.display_name}</span></div>
         <div class="profile-strip">
@@ -475,18 +509,18 @@ function render(): void {
           <div class="profile-stat"><strong>${format(evidence.analyzed_videos)}</strong><span>${t.analyzed}</span></div>
         </div>
       </section>
-      <section class="section">
-        <div class="section-heading"><div><p class="eyebrow">02 / portfolio</p><h2>${t.top}</h2></div><span class="section-note">${t.selected}</span></div>
+      <section id="distribution" class="section chart-section">
+        <div class="section-heading"><div><p class="eyebrow">02 / distribution</p><h2>${t.distribution}</h2><p class="section-description">${t.distributionHelp}</p><p class="interaction-hint">${t.interactionHint} <span>${t.mobileInteractionHint}</span></p></div></div>
+        <div class="distribution-legend"><span><i class="legend-dot top"></i>${currentLocale === "pl" ? "Najlepsze 10%" : "Top 10%"}</span><span><i class="legend-dot weak"></i>${currentLocale === "pl" ? "Najsłabsze 10%" : "Weakest 10%"}</span><span><i class="legend-dot other"></i>${currentLocale === "pl" ? "Pozostałe wybrane" : "Other selected"}</span><span><i class="legend-dot observed"></i>${currentLocale === "pl" ? "Nie wybrane" : "Not selected"}</span></div><div class="distribution distribution-chart"><canvas id="distributionCanvas" width="1000" height="360"></canvas><div id="distributionTooltip" class="distribution-tooltip" hidden></div></div>
+        <div id="distributionDetail" class="video-detail-card muted">${t.pointDetail}</div>
+      </section>
+      <section id="portfolio" class="section">
+        <div class="section-heading"><div><p class="eyebrow">03 / portfolio</p><h2>${t.top}</h2></div><span class="section-note">${t.selected}</span></div>
         <div class="video-grid">${top.map((video: any, index: number) => card(video, index + 1)).join("")}</div>
-        <div class="section-heading subsection"><div><p class="eyebrow">02b / contrast</p><h2>${t.bottom}</h2></div></div>
+        <div class="section-heading subsection"><div><p class="eyebrow">03b / contrast</p><h2>${t.bottom}</h2></div></div>
         <div class="video-grid">${bottom.map((video: any, index: number) => card(video, index + 1)).join("")}</div>
       </section>
-      <section id="distribution" class="section chart-section">
-        <div class="section-heading"><div><p class="eyebrow">03 / distribution</p><h2>${t.distribution}</h2><p class="section-description">${t.distributionHelp}</p></div></div>
-        <div class="distribution-legend"><span><i class="legend-dot top"></i>${currentLocale === "pl" ? "Najlepsze 10%" : "Top 10%"}</span><span><i class="legend-dot weak"></i>${currentLocale === "pl" ? "Najsłabsze 10%" : "Weakest 10%"}</span><span><i class="legend-dot other"></i>${currentLocale === "pl" ? "Pozostałe wybrane" : "Other selected"}</span><span><i class="legend-dot observed"></i>${currentLocale === "pl" ? "Nie wybrane" : "Not selected"}</span></div><div class="distribution distribution-chart"><canvas id="distributionCanvas" width="1000" height="360"></canvas><div id="distributionTooltip" class="distribution-tooltip" hidden></div></div>
-        <div id="distributionDetail" class="video-detail-card muted">Click a point to inspect that video.</div>
-      </section>
-      <section class="section feature-diff-section">
+      <section id="contrast" class="section feature-diff-section">
         <div class="section-heading"><div><p class="eyebrow">04 / contrast</p><h2>${t.featureDiff}</h2><p class="section-description">${t.featureDiffHelp}</p></div></div>
         <div class="feature-diff-list">${featureDifferences.map((item: any) => {
           const topValue = Number(item.top_value || 0);
@@ -497,11 +531,11 @@ function render(): void {
       </section>
       ${strongPairs.length ? `<section class="section feature-diff-section"><div class="section-heading"><div><p class="eyebrow">04 / combinations</p><h2>${t.pairDiff}</h2><p class="section-description">${t.pairDiffHelp}</p></div></div><div class="feature-diff-list">${strongPairs.map((item: any) => `<article class="feature-diff-row"><div class="feature-diff-label"><strong>${escapeHtml(currentLocale === "pl" ? item.label || item.label_en || item.key : item.label_en || item.label || item.key)}</strong><span>pair importance ${Number(item.importance).toFixed(2)}</span></div><div class="feature-diff-values"><div class="feature-diff-group"><span>${t.topGroup}</span><i><b class="top-bar" style="width:${Math.min(100, Number(item.top_value || 0) * 100)}%"></b></i><em>${escapeHtml(item.top_display || "—")}</em></div><div class="feature-diff-group"><span>${t.worstGroup}</span><i><b class="worst-bar" style="width:${Math.min(100, Number(item.bottom_value || 0) * 100)}%"></b></i><em>${escapeHtml(item.bottom_display || "—")}</em></div></div></article>`).join("")}</div></section>` : ""}
       <section class="section premium-section">
-        <div class="section-heading"><div><p class="eyebrow">05 / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
+        <div class="section-heading"><div><p class="eyebrow">05 / explain</p><h2>${t.shap}</h2><p class="section-description">${t.shapHelp}</p><p class="interaction-hint">${t.interactionHint} <span>${t.mobileInteractionHint}</span></p></div><span class="premium-tag">PREMIUM</span></div>
         <div id="shapInteractive"></div>
       </section>
       <section class="section causal-section">
-        <div class="section-heading"><div><p class="eyebrow">06 / causal exploration</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p></div><span class="premium-tag">PREMIUM</span></div>
+        <div class="section-heading"><div><p class="eyebrow">06 / causal exploration</p><h2>${t.causal}</h2><p class="section-description">${t.causalHelp}</p><p class="interaction-hint">${t.interactionHint} <span>${t.mobileInteractionHint}</span></p></div><span class="premium-tag">PREMIUM</span></div>
         <div class="causal-guide"><strong>${currentLocale === "pl" ? "Jak czytać wykresy" : "How to read the plots"}</strong><p>${t.causalGuide}</p></div>
         <div id="causalInteractive" class="causal-copy"></div>
       </section>
